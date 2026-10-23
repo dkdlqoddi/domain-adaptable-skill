@@ -23,6 +23,7 @@ argument-hint: "<슬라이스 ID 또는 한 줄 설명> [--parallel]"
    - `git status --short`(또는 바뀐 파일 목록)로 쓰기 범위 밖 변경이 없는지 본다. 있으면 되돌리고 이유를 묻는다.
    - 브리프에 없는 추가물(옵션·추상화·재시도·캐시·설정·로깅)이 있으면 목록으로 제거를 제안 → 사용자 결정 → 거절 내역을 `docs/DECISIONS.md`에 `/decide` 형식으로 기록.
    - `docs/TASKS.md` 상태 갱신: DONE, 또는 BLOCKED + 사유(계약 변경 요청이면 BLOCKER 표로).
+   - DONE이면 커밋: `git add -A && git commit -m "<ID>: <슬라이스 한 줄>"`. 슬라이스 단위 커밋이 과정의 증거이고 `/lean diff`의 기준점이다.
 7. **마무리 한 줄**: 다음 슬라이스 제안. 컨텍스트가 무거워졌으면 "`/clear` 후 `/delegate <다음>`"을 권한다.
 
 ## 위임하지 않는 경우

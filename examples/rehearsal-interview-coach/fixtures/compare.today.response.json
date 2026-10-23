@@ -1,0 +1,18 @@
+{
+  "player": "박지훈",
+  "date": "2026-10-23",
+  "today": {
+    "player": "박지훈",
+    "date": "2026-10-23",
+    "items": { "key_message": "중", "avoid_negative": "중", "answer_length": "중" },
+    "memo": "지난주보다 길이 안정"
+  },
+  "previous": [
+    {
+      "player": "박지훈",
+      "date": "2026-10-16",
+      "items": { "key_message": "하", "avoid_negative": "중", "answer_length": "하" },
+      "memo": "첫 참여. 긴장해서 답이 짧게 끊김"
+    }
+  ]
+}

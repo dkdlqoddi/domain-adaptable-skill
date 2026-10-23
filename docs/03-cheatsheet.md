@@ -8,7 +8,7 @@
 ## 전체 흐름
 ```
 /kickoff → /interview ×3~4 → /spec → /workspace → /delegate S0 → /verify S0
-→ [ /delegate Sn → /verify Sn → /lean → /decide → /clear ] × P0 개수
+→ [ /delegate Sn → /verify Sn → /lean → /decide → 커밋 → /clear ] × P0 개수
 → 매 정시 /verify all → (마감 60분 전) /lean all → /wrapup check → (30분 전) /wrapup retro
 ```
 

@@ -1,0 +1,25 @@
+{
+  "player": "김민수",
+  "date": "2026-10-23",
+  "today": null,
+  "previous": [
+    {
+      "player": "김민수",
+      "date": "2026-10-16",
+      "items": { "key_message": "상", "avoid_negative": "상", "answer_length": "중" },
+      "memo": "세 가지 모두 안정적. 다음엔 돌발 질문 추가"
+    },
+    {
+      "player": "김민수",
+      "date": "2026-10-09",
+      "items": { "key_message": "상", "avoid_negative": "중", "answer_length": "하" },
+      "memo": "핵심 메시지 '팀 승리' 잘 전달. 길이는 아직 김"
+    },
+    {
+      "player": "김민수",
+      "date": "2026-10-02",
+      "items": { "key_message": "중", "avoid_negative": "중", "answer_length": "하" },
+      "memo": "답변이 길어짐. 결론부터 한 문장으로 끊는 연습 필요"
+    }
+  ]
+}

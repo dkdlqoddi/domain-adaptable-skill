@@ -1,0 +1,10 @@
+c492cbb 과제 저장소 초기 상태
+d9845ef kickoff/interview: 작업 헌법·스킬·docs 템플릿과 인터뷰 1·2회차 결과
+65b4ecb spec: SPEC·CONTRACT v2 확정, GLOSSARY 코드 표기, D-002~D-006, fixtures 8개
+26503a8 workspace: 모듈 지침 api/·ui/, TASKS 슬라이스 S0~S5, D-007·D-008
+1d04dda S0: 걸어다니는 뼈대 — api/server.py(players 계산, compare·records 스텁)·ui/index.html 선수 목록·테스트 4개, D-009
+3abc5af harness: workspace 스킬 동기화
+99743f8 verify: S0 통합 체크포인트 2회차(리허설) — TEST·SMOKE·curl 왕복 8종·손상 파일 3종·Playwright 첫 화면/빈 상태 통과, .playwright-mcp/ gitignore
+ea783eb verify: S0 인계에 fetch 실패 처리 메모(S2) 추가
+ebb86bc lean: S0 diff 검토(리허설) — 삭제·축소 0건, 사소한 3건 유지 근거 D-010, 체크포인트·인계(테스트 멈춤 리스크) 기록
+864546c wrapup: 리허설 — README 실행 방법(설치→실행→확인), docs/RETRO.md 9절, 잔재 점검(삭제 0건·__pycache__ 정리), TEST·SMOKE·Playwright 첫 화면/빈 상태 재확인, 체크포인트 기록

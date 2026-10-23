@@ -53,3 +53,20 @@
 - **규칙 추가.** 루트 CLAUDE.md는 80줄 한도. 넘으면 특정 폴더에서만 필요한 규칙은 `<모듈>/CLAUDE.md`로, 특정 파일 종류에서만 필요한 규칙은 `.claude/rules/<topic>.md`에 `paths:` 프런트매터로.
 - **도메인 사전 준비.** `templates/docs/domain/primer.md` 추가. 설치·패키징에 자동 포함된다.
 - **검증.** 수정 후 `scripts/check.sh` → 빈 폴더에 `scripts/install.sh` → `claude`에서 `/kickoff`로 흐름 확인.
+
+## 6. 리허설 결과 (2026-10-23)
+모의 과제 "인터뷰 연습 도우미"(지시문 5줄)로 9개 명령을 순서대로 돌렸다. 페르소나 답변 2회차는 가공했고, 사람이 없는 헤드리스 실행이라 "결정은 추천안으로 진행하고 (가정) 표시"라는 리허설 지시를 인자로 붙였다. 산출물 전체는 `examples/rehearsal-interview-coach/`.
+
+| 명령 | 나온 것 |
+|---|---|
+| `/kickoff` | 재정의 5줄, 모르는 것 6범주, 실제 시각 기준 시간표. SPEC 1·7절과 TASKS 상단에 기록 |
+| `/interview` ×2 | 사다리 ① 질문 5개 → digest로 domain 4파일·GLOSSARY 8용어·SPEC 후보 4개. 지시문과 담당자 말이 갈리는 지점을 추천안과 함께 사람에게 넘김 |
+| `/spec all` | P0 2개, 비목표 13개(각각 인터뷰 근거), 모듈 2개 계약과 픽스처 8개, 결정 5건 |
+| `/workspace all` | 모듈 CLAUDE.md 22줄×2, 슬라이스 S0~S5, 감사 6항목 통과 |
+| `/delegate S0` | 브리프 저장 → 서브에이전트 → 루트 재검증 → 범위 확인 → DONE 커밋. 서버 106줄, 테스트 55줄, HTML 24줄 |
+| `/verify all` | 테스트·스모크·curl 8종·손상 파일 3종·브라우저 2장면. 체크포인트 기록 |
+| `/lean diff` | 덩어리 13개를 SPEC·CONTRACT와 대조, 제거 0건. 브리프의 "하지 말 것"이 사전 차단했음을 D-010으로 기록 |
+| `/decide` | D-001을 형식대로 추가, 빠진 대안은 `(추정)`으로 유추 |
+| `/wrapup all` | 실행 README 3단계, RETRO 9절 85줄. P0 미완을 "제출 불가"로 명시 |
+
+리허설로 고친 것: 재설치 시 CLAUDE.md 중복 로드, 기존 `docs/`가 있을 때 `docs/docs/` 중첩, `/lean diff`가 새 파일(untracked)을 못 보던 문제, 슬라이스 단위 커밋 규칙 부재, `install.sh --force`의 `docs/` 덮어쓰기, TASKS 칸 길이 무제한, `/verify`의 브라우저 자동화 도구 활용.

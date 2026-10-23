@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>인터뷰 연습 기록</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 2rem; }
+</style>
+</head>
+<body>
+<h1>인터뷰 연습 기록</h1>
+<label for="player">선수</label>
+<select id="player"></select>
+<script>
+  // S0: 선수 목록만 채운다. 비교 표·입력·빈 상태 문구·에러 표시는 S2·S4
+  fetch('/api/players')
+    .then((response) => response.json())
+    .then(({ players }) => {
+      const select = document.getElementById('player');
+      for (const player of players) select.add(new Option(player, player));
+    });
+</script>
+</body>
+</html>

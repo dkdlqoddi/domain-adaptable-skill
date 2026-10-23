@@ -28,6 +28,7 @@ domain-adaptable-skill/
 │       ├── lean/                  과잉 설계 감사 (diff / plan / all)
 │       ├── decide/                결정 3줄 기록
 │       └── wrapup/                마무리 점검, 복기 문서
+├── examples/rehearsal-interview-coach/   모의 과제로 9개 명령을 돌린 산출물 (문서, 코드, 명령별 출력)
 ├── scripts/
 │   ├── install.sh                 하네스를 프로젝트에 복사 (기존 파일은 보존)
 │   ├── pack.sh                    업로드용 dist/harness.zip 생성
@@ -71,6 +72,7 @@ domain-adaptable-skill/
                   /verify Sn                     검증 통과
                   /lean                          SPEC에 없는 추가물 제거
                   /decide                        DECISIONS.md 항목
+                  git commit                     슬라이스 단위 커밋 (과정의 증거)
                   /clear                         컨텍스트 비우기 (상태는 docs/에 있음)
    매 정시         /verify all                    통합 체크포인트
  4 마무리          /lean all → /wrapup check      깨끗한 저장소, 실행 README
@@ -111,6 +113,7 @@ ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사�
 세션 시작 고정 비용은 약 1천 토큰입니다. 상태는 모두 `docs/`에 있으므로 슬라이스가 끝날 때마다 `/clear`로 비우고, 구현은 새 컨텍스트에서 시작하는 서브에이전트가 맡습니다. `scripts/check.sh`가 이 예산을 지키는지 검사합니다.
 
 ## 미리 연습하기
+- 이 하네스는 모의 과제 "인터뷰 연습 도우미"로 9개 명령을 모두 한 번 돌려 봤습니다. 각 단계에서 어떤 문서와 코드가 나오는지 `examples/rehearsal-interview-coach/`에서 먼저 훑어보세요.
 - 모의 과제로 2시간 압축 리허설을 두 번 합니다. 페르소나는 다른 AI 채팅에 "현업 담당자 역할, 할 일 정리 요청에는 답하지 말 것"을 시켜 대체합니다.
 - 도메인이 사전에 공개되면 `harness/.claude/skills/kickoff/templates/docs/domain/primer.md`를 써 두세요. 설치와 패키징에 자동으로 포함됩니다.
 - `scripts/check.sh`로 하네스 상태를 확인하고 `scripts/pack.sh`로 zip을 만듭니다.

@@ -80,7 +80,7 @@
 
 ## 6. 구현 루프
 ```
-/delegate Sn → 서브에이전트 구현 → /verify Sn → /lean → /decide → TASKS 갱신 → /clear → 다음 슬라이스
+/delegate Sn → 서브에이전트 구현 → /verify Sn → /lean → /decide → TASKS 갱신 → git commit → /clear → 다음 슬라이스
 ```
 ### 수정 유형 매트릭스
 | 유형 | 예 | 어디서 | 규칙 |

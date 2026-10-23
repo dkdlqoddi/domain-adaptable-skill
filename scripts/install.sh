@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 하네스를 대상 프로젝트에 설치한다. 기존 파일은 덮어쓰지 않는다(--force 시 덮어씀).
+# 하네스를 대상 프로젝트에 설치한다. 기존 파일은 덮어쓰지 않는다.
+# --force 는 .claude/ 와 CLAUDE.md 만 덮어쓴다. docs/ 는 작업 상태이므로 절대 덮어쓰지 않는다.
 # 사용: scripts/install.sh <대상 디렉토리> [--force]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,7 +33,8 @@ if [ -e "$DST/CLAUDE.md" ] && [ "$FORCE" != "--force" ]; then
 else
   copy "$SRC/CLAUDE.md" "$DST/CLAUDE.md"
 fi
-echo "== docs/ 템플릿 =="
+echo "== docs/ 템플릿 (덮어쓰지 않음) =="
+FORCE=""
 TPL="$SRC/.claude/skills/kickoff/templates/docs"
 while IFS= read -r -d '' f; do copy "$f" "$DST/docs/${f#$TPL/}"; done < <(find "$TPL" -type f -print0 | sort -z)
 echo
