@@ -13,6 +13,7 @@ echo "== 줄 수 예산 =="
 budget "$H/CLAUDE.md" 80
 for s in "$H"/.claude/skills/*/SKILL.md; do budget "$s" 120; done
 for t in "$H"/.claude/skills/*/*.md; do case "$t" in */SKILL.md) ;; *) budget "$t" 80 ;; esac; done
+P="$H/.claude/skills/kickoff/templates/docs/domain/primer.md"; [ -f "$P" ] && budget "$P" 80
 
 echo "== 프런트매터 =="
 always_desc=0
