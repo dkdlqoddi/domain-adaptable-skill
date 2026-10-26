@@ -149,7 +149,7 @@
 | 컨텍스트 과부하 | 응답이 느려지고 엉뚱한 파일을 수정 | `/clear`. 상태는 `docs/`에 있다 |
 
 ## 11. 사전 준비 (CapEx — 당일 판단 비용을 줄이는 투자)
-1. **리허설.** 사람 역할을 Claude가 대신한 자동 리허설 2회는 끝났다(`examples/`: 웹 과제 S0까지, CLI 과제 P0·P1 완료). 남은 것은 **사람이 직접 하는 1회**다. `examples/rehearsal-2-regress-triage/kit/persona.md`를 다른 AI 채팅에 붙여 페르소나로 쓴다. 9개 명령의 순서가 손에 익어야 한다.
+1. **리허설.** 사람 역할을 Claude가 대신한 자동 리허설 2회는 끝났다(`examples/`: 웹 과제 S0까지, CLI 과제 P0·P1 완료). 남은 것은 **사람이 직접 하는 1회**다. 처음 보는 반도체 과제 키트 `examples/rehearsal-3-yield-kit/`로 한다(README만 읽고, `persona.md`와 `after-rehearsal/`은 끝난 뒤에). 9개 명령의 순서가 손에 익어야 한다.
 2. **도메인 사전 지식.** SK하이닉스 본선(반도체 현장 과제)에 맞춰 `harness/.claude/skills/kickoff/templates/docs/domain/primer.md`를 써 두었다(2026-10-26). 데이터 모양·단위·제약·질문 재료가 들어 있다. 설치·패키징에 자동 포함되고, `/interview`가 질문 재료로만 읽는다. 비개발자 입상자의 무기가 도메인 지식이었다. 과제를 받은 뒤 내용이 틀리면 고친다.
 3. **당일 아침.** `scripts/check.sh` → `scripts/pack.sh` → zip과 치트시트를 챙긴다.
 4. **외울 것 세 가지.** 명령 순서, 인터뷰 사다리 ①~⑤, "SPEC에 근거가 없다. 제거하고 단순한 버전으로."

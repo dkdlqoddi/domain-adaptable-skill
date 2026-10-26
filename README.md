@@ -30,7 +30,8 @@ domain-adaptable-skill/
 │       └── wrapup/                마무리 점검, 복기 문서
 ├── examples/
 │   ├── rehearsal-interview-coach/   1차 리허설: 웹 과제, S0까지 (문서, 코드, 명령별 출력)
-│   └── rehearsal-2-regress-triage/  2차 리허설: CLI 과제, P0·P1 완료, 계약 변경·병렬 위임 시험 (+ 직접 리허설용 키트)
+│   ├── rehearsal-2-regress-triage/  2차 리허설: CLI 과제, P0·P1 완료, 계약 변경·병렬 위임 시험
+│   └── rehearsal-3-yield-kit/       직접 하는 리허설용 키트: 처음 보는 반도체 과제 (숨은 사실·정답은 따로)
 ├── scripts/
 │   ├── install.sh                 하네스를 프로젝트에 복사 (기존 파일은 보존)
 │   ├── pack.sh                    업로드용 dist/harness.zip 생성
@@ -119,7 +120,7 @@ ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사�
 - 이 하네스로 모의 과제 두 개를 처음부터 끝까지 돌려 봤습니다. 각 단계에서 어떤 문서와 코드가 나오는지 `examples/`에서 먼저 훑어보세요.
   - 1차 "인터뷰 연습 도우미"(웹): S0까지 진행
   - 2차 "회귀 결과 정리 도우미"(CLI): P0·P1 완료, 60분
-- 두 리허설 모두 사람 역할을 Claude가 대신했습니다. 이제 **직접** 한 번 해 보세요. `examples/rehearsal-2-regress-triage/kit/persona.md`를 다른 AI 채팅에 붙여 넣으면 담당자 역할을 합니다(시트는 읽지 말 것). 방법은 그 폴더의 README "직접 리허설하기"에 있습니다.
+- 두 리허설 모두 사람 역할을 Claude가 대신했습니다. 이제 **직접** 한 번 해 보세요. 처음 보는 반도체 과제 키트가 `examples/rehearsal-3-yield-kit/`에 있고, 방법은 그 폴더의 `README.md`에 있습니다. `persona.md`와 `after-rehearsal/`은 끝날 때까지 열지 마세요.
 - 반도체 현장 사전 지식 `harness/.claude/skills/kickoff/templates/docs/domain/primer.md`가 들어 있습니다(SK하이닉스 본선 대비). 설치와 패키징에 자동으로 포함되고, `/interview`가 질문 재료로만 읽습니다. 다른 도메인 대회라면 지우거나 바꾸세요.
 - `scripts/check.sh`로 하네스 상태를 확인하고 `scripts/pack.sh`로 zip을 만듭니다.
 
