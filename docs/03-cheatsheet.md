@@ -2,7 +2,7 @@
 
 ## 시작 10분
 1. 하네스 설치: `unzip -n harness.zip` (프로젝트 루트) 또는 `scripts/install.sh <프로젝트>`
-2. `claude` 실행 → `/kickoff` (총 시간이 6h가 아니면 `/kickoff 4h`)
+2. `claude` 실행 → `/kickoff 4h` (2차 예선 4시간: 탐색 ~0:40 → 계약·뼈대 ~1:20 → 구현 ~3:10 → 마무리 ~4:00. 생략하면 6h)
 3. "모르는 것" 표를 보고 → `/interview`
 
 ## 전체 흐름

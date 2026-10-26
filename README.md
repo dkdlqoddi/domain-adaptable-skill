@@ -58,8 +58,9 @@ domain-adaptable-skill/
 
 ## 10분 빠른 시작 (당일)
 1. **미리**: `scripts/pack.sh`로 `dist/harness.zip`을 만들어 챙기고, `docs/03-cheatsheet.md`를 인쇄합니다.
-2. **당일**: 과제 프로젝트 루트에서 zip을 풉니다. `unzip -n harness.zip` (로컬 테스트는 `scripts/install.sh <프로젝트 경로>`)
-3. `claude`를 실행하고 `/kickoff`를 입력합니다. 이후 할 일은 각 명령이 마지막 줄에 알려줍니다.
+2. **시작 직후 확인 (3분)**: 터미널의 AI 도구(`claude --version`, 없으면 `codex`), 제한 시간, 파일 업로드 가능 여부, 인터넷. 전체 목록은 `docs/01-cofa-probe.md` 8절. Codex뿐이거나 업로드가 안 되면 아래 "자주 묻는 질문"을 따릅니다.
+3. **설치**: 과제 프로젝트 루트에서 zip을 풉니다. `unzip -n harness.zip` (로컬 테스트는 `scripts/install.sh <프로젝트 경로>`)
+4. **시작**: `claude`를 실행하고 제한 시간을 붙여 `/kickoff 4h`처럼 입력합니다(2차 예선은 4시간, 생략하면 6시간으로 계산). 이후 할 일은 각 명령이 마지막 줄에 알려줍니다.
 
 ## 전체 흐름
 ```
