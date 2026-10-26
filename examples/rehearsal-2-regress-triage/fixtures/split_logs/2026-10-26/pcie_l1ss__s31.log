@@ -1,0 +1,4 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: pcie_l1ss_test  seed=31  host=farm07  start=2026-10-26 22:01:00
+UVM_INFO @ 0: reporter [RNTST] Running test pcie_l1ss_test...
+UVM_INFO tb/seq/pcie_l1ss_seq.sv(90) @ 2000000: uvm_test_top.env.agt.sqr@@seq [SEQ] waiting for L1.2 exit

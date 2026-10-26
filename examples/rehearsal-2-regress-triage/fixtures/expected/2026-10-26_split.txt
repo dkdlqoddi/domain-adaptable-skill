@@ -1,0 +1,39 @@
+회귀 2026-10-26 정리 (비교 기준: 2026-10-25 결과) [1/2]
+
+[끊긴 로그 — LSF 시간 제한, 또는 아직 실행 중]
+- pcie_l1ss, seed 1개 중 1개(31)
+
+[새로 생긴 실패]
+- apb_reg, seed 2개 중 1개(3): UVM_ERROR tb/env/apb_reg_chk.sv(88) @ 41200: uvm_test_top.env.reg_chk [REG] read value mismatch reg=CTRL addr=0x0040 exp=0x00000001 act=0x00000000
+- axi_burst, seed 2개 중 1개(21): UVM_ERROR tb/env/axi_scoreboard.sv(210) @ 903110: uvm_test_top.env.scb [SCB] write response BRESP=SLVERR on addr=0x8000f000 len=15 id=3
+- axi_order, seed 1개 중 1개(8): UVM_ERROR tb/env/axi_order_chk.sv(57) @ 1120400: uvm_test_top.env.ord [ORDER] read data returned out of order for id=2 expected tag 14 got 15
+- cache_coh, seed 1개 중 1개(41): UVM_ERROR tb/env/coh_scoreboard.sv(301) @ 2204000: uvm_test_top.env.coh [COH] line 0x1f40 state mismatch exp=SHARED act=MODIFIED on core 2
+- cache_evict, seed 1개 중 1개(5): UVM_FATAL tb/env/cache_model.sv(144) @ 780000: uvm_test_top.env.model [MODEL] victim way 3 selected while all ways locked in set 0x2a
+- clk_gate, seed 1개 중 1개(2): UVM_ERROR tb/env/clk_mon.sv(33) @ 51000: uvm_test_top.env.clk_mon [CLK] gated clock toggled while enable low for 4 cycles on domain cpu_clk
+- ddr_refresh, seed 1개 중 1개(7): UVM_ERROR tb/env/ddr_timing_chk.sv(95) @ 7800000: uvm_test_top.env.tchk [TIMING] tREFI violated: 7900 ns since last refresh (limit 7800 ns) rank 1
+- dma_chain, seed 2개 중 1개(30): UVM_ERROR tb/env/dma_scoreboard.sv(188) @ 1450020: uvm_test_top.env.scb [SCB] descriptor chain ended early at desc 6 of 9 next=0x00000000
+- gpio_irq, seed 1개 중 1개(4): UVM_ERROR tb/env/gpio_irq_chk.sv(61) @ 33000: uvm_test_top.env.irq_chk [IRQ] edge interrupt on pin 17 not raised within 20 cycles
+- i2c_master, seed 1개 중 1개(9): UVM_ERROR tb/env/i2c_mon.sv(140) @ 640000: uvm_test_top.env.i2c_mon [I2C] NACK received on address byte 0x50 during write transfer 3
+- i2c_slave, seed 1개 중 1개(10): UVM_ERROR tb/env/i2c_slave_chk.sv(77) @ 702300: uvm_test_top.env.slv_chk [I2C] clock stretching exceeded 1000 cycles on byte 12
+- irq_nest, seed 1개 중 1개(6): UVM_FATAL tb/env/irq_ctrl_model.sv(205) @ 1001000: uvm_test_top.env.irq_model [IRQ] nested priority inversion: level 2 preempted level 5 on cpu 0
+- mbox_ipc, seed 1개 중 1개(14): UVM_ERROR tb/env/mbox_scoreboard.sv(99) @ 455500: uvm_test_top.env.mbox_scb [MBOX] message lost: sent 32 received 31 on channel 3
+- noc_route, seed 1개 중 1개(15): UVM_ERROR tb/env/noc_route_chk.sv(166) @ 3300400: uvm_test_top.env.route [NOC] packet 0x7f21 delivered to node 5 expected node 9 (hops=4)
+- pmu_sleep, seed 1개 중 1개(16): UVM_ERROR tb/env/pmu_seq_chk.sv(48) @ 6020000: uvm_test_top.env.pmu_chk [PMU] power-down request acked before retention save completed on island 2
+- pwm_duty, seed 1개 중 1개(17): UVM_ERROR tb/env/pwm_mon.sv(70) @ 280000: uvm_test_top.env.pwm_mon [PWM] duty cycle measured 49 percent expected 50 percent on channel 1
+- qspi_xip, seed 1개 중 1개(18): UVM_ERROR tb/env/qspi_scoreboard.sv(133) @ 910000: uvm_test_top.env.qspi_scb [XIP] fetched word mismatch addr=0x00120040 exp=0xe12fff1e act=0xe12fff1f
+- rom_boot, seed 1개 중 1개(19): UVM_FATAL tb/env/boot_mon.sv(25) @ 150000: uvm_test_top.env.boot [BOOT] boot vector fetch returned X at addr=0x00000000 after reset release
+- rtc_alarm, seed 1개 중 1개(20): UVM_ERROR tb/env/rtc_chk.sv(84) @ 12000000: uvm_test_top.env.rtc_chk [RTC] alarm fired 2 ticks late (exp 1000 act 1002)
+- sec_sha, seed 1개 중 1개(23): UVM_ERROR tb/env/sha_scoreboard.sv(150) @ 990000: uvm_test_top.env.sha_scb [SHA] digest word 7 mismatch exp=0x5c26a9ae act=0x5c26a9af after 2 blocks
+- spi_loop, seed 2개 중 1개(24): UVM_ERROR tb/env/spi_chk.sv(66) @ 404000: uvm_test_top.env.spi_chk [SPI] loopback byte mismatch idx=27 exp=0xa5 act=0x25 mode=3
+
+---------- 여기서 나눠 올림 ----------
+
+회귀 2026-10-26 정리 [2/2]
+
+[새로 생긴 실패] (이어서)
+- timer_wdt, seed 1개 중 1개(25): UVM_FATAL tb/env/wdt_mon.sv(40) @ 15000000: uvm_test_top.env.wdt_mon [WDT] watchdog reset asserted while kick was in flight (window 2 of 4)
+
+[계속 남은 실패]
+- ddr_init, seed 1개 중 1개(12): UVM_FATAL tb/env/ddr_phy_mon.sv(120) @ 9000000: uvm_test_top.env.phy_mon [PHY] write leveling did not converge after 64 iterations on byte lane 6
+- sec_aes, seed 1개 중 1개(22): UVM_ERROR tb/env/aes_scoreboard.sv(212) @ 870000: uvm_test_top.env.aes_scb [AES] ciphertext block 3 mismatch exp=0x3ad77bb40d7a3660 act=0x3ad77bb40d7a3661
+- usb_enum, seed 1개 중 2개에서 1개로(26): UVM_ERROR tb/env/usb_dev_chk.sv(310) @ 5500000: uvm_test_top.env.usb_chk [USB] GET_DESCRIPTOR returned 18 bytes expected 64 on endpoint 0

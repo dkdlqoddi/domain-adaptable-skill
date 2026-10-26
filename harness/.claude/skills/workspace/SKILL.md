@@ -38,4 +38,4 @@ argument-hint: "[analyze | generate | audit | all(기본)]"
 - [ ] 모듈 수 ≤ 4. 넘으면 합칠 것을 먼저 제안한다
 
 ## 출력
-감사 결과 체크리스트 → 마지막 줄: "다음: `/delegate S0`".
+감사 결과 체크리스트 → 마지막 줄: "다음: `/delegate <첫 TODO 슬라이스>`"(처음이면 S0).

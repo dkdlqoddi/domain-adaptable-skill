@@ -1,0 +1,26 @@
+test	total	seeds	key
+apb_reg	2	3	UVM_ERROR tb/env/apb_reg_chk.sv(#) @ #: uvm_test_top.env.reg_chk [REG] read value mismatch reg=CTRL addr=# exp=# act=#
+axi_burst	2	21	UVM_ERROR tb/env/axi_scoreboard.sv(#) @ #: uvm_test_top.env.scb [SCB] write response BRESP=SLVERR on addr=# len=# id=#
+axi_order	1	8	UVM_ERROR tb/env/axi_order_chk.sv(#) @ #: uvm_test_top.env.ord [ORDER] read data returned out of order for id=# expected tag # got #
+cache_coh	1	41	UVM_ERROR tb/env/coh_scoreboard.sv(#) @ #: uvm_test_top.env.coh [COH] line # state mismatch exp=SHARED act=MODIFIED on core #
+cache_evict	1	5	UVM_FATAL tb/env/cache_model.sv(#) @ #: uvm_test_top.env.model [MODEL] victim way # selected while all ways locked in set #
+clk_gate	1	2	UVM_ERROR tb/env/clk_mon.sv(#) @ #: uvm_test_top.env.clk_mon [CLK] gated clock toggled while enable low for # cycles on domain cpu_clk
+ddr_init	1	12	UVM_FATAL tb/env/ddr_phy_mon.sv(#) @ #: uvm_test_top.env.phy_mon [PHY] write leveling did not converge after # iterations on byte lane #
+ddr_refresh	1	7	UVM_ERROR tb/env/ddr_timing_chk.sv(#) @ #: uvm_test_top.env.tchk [TIMING] tREFI violated: # ns since last refresh (limit # ns) rank #
+dma_chain	2	30	UVM_ERROR tb/env/dma_scoreboard.sv(#) @ #: uvm_test_top.env.scb [SCB] descriptor chain ended early at desc # of # next=#
+gpio_irq	1	4	UVM_ERROR tb/env/gpio_irq_chk.sv(#) @ #: uvm_test_top.env.irq_chk [IRQ] edge interrupt on pin # not raised within # cycles
+i2c_master	1	9	UVM_ERROR tb/env/i#c_mon.sv(#) @ #: uvm_test_top.env.i#c_mon [I#C] NACK received on address byte # during write transfer #
+i2c_slave	1	10	UVM_ERROR tb/env/i#c_slave_chk.sv(#) @ #: uvm_test_top.env.slv_chk [I#C] clock stretching exceeded # cycles on byte #
+irq_nest	1	6	UVM_FATAL tb/env/irq_ctrl_model.sv(#) @ #: uvm_test_top.env.irq_model [IRQ] nested priority inversion: level # preempted level # on cpu #
+mbox_ipc	1	14	UVM_ERROR tb/env/mbox_scoreboard.sv(#) @ #: uvm_test_top.env.mbox_scb [MBOX] message lost: sent # received # on channel #
+noc_route	1	15	UVM_ERROR tb/env/noc_route_chk.sv(#) @ #: uvm_test_top.env.route [NOC] packet # delivered to node # expected node # (hops=#)
+pmu_sleep	1	16	UVM_ERROR tb/env/pmu_seq_chk.sv(#) @ #: uvm_test_top.env.pmu_chk [PMU] power-down request acked before retention save completed on island #
+pwm_duty	1	17	UVM_ERROR tb/env/pwm_mon.sv(#) @ #: uvm_test_top.env.pwm_mon [PWM] duty cycle measured # percent expected # percent on channel #
+qspi_xip	1	18	UVM_ERROR tb/env/qspi_scoreboard.sv(#) @ #: uvm_test_top.env.qspi_scb [XIP] fetched word mismatch addr=# exp=# act=#
+rom_boot	1	19	UVM_FATAL tb/env/boot_mon.sv(#) @ #: uvm_test_top.env.boot [BOOT] boot vector fetch returned X at addr=# after reset release
+rtc_alarm	1	20	UVM_ERROR tb/env/rtc_chk.sv(#) @ #: uvm_test_top.env.rtc_chk [RTC] alarm fired # ticks late (exp # act #)
+sec_aes	1	22	UVM_ERROR tb/env/aes_scoreboard.sv(#) @ #: uvm_test_top.env.aes_scb [AES] ciphertext block # mismatch exp=# act=#
+sec_sha	1	23	UVM_ERROR tb/env/sha_scoreboard.sv(#) @ #: uvm_test_top.env.sha_scb [SHA] digest word # mismatch exp=# act=# after # blocks
+spi_loop	2	24	UVM_ERROR tb/env/spi_chk.sv(#) @ #: uvm_test_top.env.spi_chk [SPI] loopback byte mismatch idx=# exp=# act=# mode=#
+timer_wdt	1	25	UVM_FATAL tb/env/wdt_mon.sv(#) @ #: uvm_test_top.env.wdt_mon [WDT] watchdog reset asserted while kick was in flight (window # of #)
+usb_enum	1	26	UVM_ERROR tb/env/usb_dev_chk.sv(#) @ #: uvm_test_top.env.usb_chk [USB] GET_DESCRIPTOR returned # bytes expected # on endpoint #

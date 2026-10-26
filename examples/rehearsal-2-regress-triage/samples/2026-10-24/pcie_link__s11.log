@@ -1,0 +1,17 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: pcie_link_test  seed=11  host=farm11  start=2026-10-24 22:05:02
+UVM_INFO @ 0: reporter [RNTST] Running test pcie_link_test...
+UVM_INFO tb/env/pcie_env.sv(64) @ 0: uvm_test_top.env [ENV] build_phase done
+UVM_INFO tb/seq/pcie_link_seq.sv(41) @ 120000: uvm_test_top.env.agt.sqr@@seq [SEQ] 75 transactions issued
+UVM_WARNING tb/env/pcie_cov.sv(17) @ 980000: uvm_test_top.env.cov [COV] bin pcie_len_max not hit
+UVM_FATAL tb/env/pcie_link_mon.sv(77) @ 5000000: uvm_test_top.env.link_mon [LINK] timeout waiting for link up after 5000000 ps (ltssm=POLLING)
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   51
+UVM_WARNING :    1
+UVM_ERROR :    0
+UVM_FATAL :    1
+
+$finish at simulation time 5000000 ps
+simx: run finished  end=2026-10-24 22:31:40  cpu=74.3s

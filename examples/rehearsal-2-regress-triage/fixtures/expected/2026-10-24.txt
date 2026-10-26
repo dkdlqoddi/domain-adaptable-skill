@@ -1,0 +1,11 @@
+회귀 2026-10-24 정리 (비교 기준: 없음, 전부 새로 생긴 실패로 표시)
+
+[끊긴 로그 — LSF 시간 제한, 또는 아직 실행 중]
+없음
+
+[새로 생긴 실패]
+- pcie_link, seed 2개 중 1개(11): UVM_FATAL tb/env/pcie_link_mon.sv(77) @ 5000000: uvm_test_top.env.link_mon [LINK] timeout waiting for link up after 5000000 ps (ltssm=POLLING)
+- uart_loop, seed 1개 중 1개(7): UVM_ERROR tb/env/uart_chk.sv(203) @ 702880: uvm_test_top.env.chk [PARITY] parity error on rx byte 0x3c (lane 1)
+
+[계속 남은 실패]
+없음

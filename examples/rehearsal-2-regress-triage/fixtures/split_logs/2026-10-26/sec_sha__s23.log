@@ -1,0 +1,15 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: sec_sha_test  seed=23  host=farm07  start=2026-10-26 22:01:00
+UVM_INFO @ 0: reporter [RNTST] Running test sec_sha_test...
+UVM_ERROR tb/env/sha_scoreboard.sv(150) @ 990000: uvm_test_top.env.sha_scb [SHA] digest word 7 mismatch exp=0x5c26a9ae act=0x5c26a9af after 2 blocks
+UVM_INFO tb/test/sec_sha_test.sv(55) @ 1000000: uvm_test_top [TEST] TEST FAILED
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   40
+UVM_WARNING :    0
+UVM_ERROR :    1
+UVM_FATAL :    0
+
+$finish at simulation time 1000000 ps
+simx: run finished  end=2026-10-26 22:05:00  cpu=200.0s

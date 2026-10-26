@@ -1,0 +1,18 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: dma_burst_test  seed=203  host=farm16  start=2026-10-25 22:04:03
+UVM_INFO @ 0: reporter [RNTST] Running test dma_burst_test...
+UVM_INFO tb/env/dma_env.sv(64) @ 0: uvm_test_top.env [ENV] build_phase done
+UVM_INFO tb/seq/dma_burst_seq.sv(41) @ 120000: uvm_test_top.env.agt.sqr@@seq [SEQ] 67 transactions issued
+UVM_WARNING tb/env/dma_cov.sv(17) @ 980000: uvm_test_top.env.cov [COV] bin dma_len_max not hit
+UVM_ERROR tb/env/dma_scoreboard.sv(142) @ 655020: uvm_test_top.env.scb [SCB] data mismatch addr=0x00011a08 exp=0x0badf00d act=0x0badf00c
+UVM_INFO tb/test/dma_burst_test.sv(55) @ 1500000: uvm_test_top [TEST] TEST FAILED
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   63
+UVM_WARNING :    1
+UVM_ERROR :    1
+UVM_FATAL :    0
+
+$finish at simulation time 1500000 ps
+simx: run finished  end=2026-10-25 22:07:20  cpu=323.9s

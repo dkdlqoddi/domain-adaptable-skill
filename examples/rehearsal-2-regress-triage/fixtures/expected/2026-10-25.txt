@@ -1,0 +1,11 @@
+회귀 2026-10-25 정리 (비교 기준: 2026-10-24 결과)
+
+[끊긴 로그 — LSF 시간 제한, 또는 아직 실행 중]
+- axi_stress, seed 2개 중 1개(55)
+
+[새로 생긴 실패]
+- dma_burst, seed 2개 중 2개(202, 203): UVM_ERROR tb/env/dma_scoreboard.sv(142) @ 812340: uvm_test_top.env.scb [SCB] data mismatch addr=0x00004f20 exp=0xdeadbeef act=0xdeadbeee
+
+[계속 남은 실패]
+- pcie_link, seed 2개 중 1개(11): UVM_FATAL tb/env/pcie_link_mon.sv(77) @ 5000000: uvm_test_top.env.link_mon [LINK] timeout waiting for link up after 5000000 ps (ltssm=POLLING)
+- uart_loop, seed 1개 중 1개(7): UVM_ERROR tb/env/uart_chk.sv(203) @ 640200: uvm_test_top.env.chk [PARITY] parity error on rx byte 0x5a (lane 0)

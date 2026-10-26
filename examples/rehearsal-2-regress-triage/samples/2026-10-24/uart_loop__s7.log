@@ -1,0 +1,18 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: uart_loop_test  seed=7  host=farm07  start=2026-10-24 22:06:30
+UVM_INFO @ 0: reporter [RNTST] Running test uart_loop_test...
+UVM_INFO tb/env/uart_env.sv(64) @ 0: uvm_test_top.env [ENV] build_phase done
+UVM_INFO tb/seq/uart_loop_seq.sv(41) @ 120000: uvm_test_top.env.agt.sqr@@seq [SEQ] 71 transactions issued
+UVM_WARNING tb/env/uart_cov.sv(17) @ 980000: uvm_test_top.env.cov [COV] bin uart_len_max not hit
+UVM_ERROR tb/env/uart_chk.sv(203) @ 702880: uvm_test_top.env.chk [PARITY] parity error on rx byte 0x3c (lane 1)
+UVM_INFO tb/test/uart_loop_test.sv(55) @ 900000: uvm_test_top [TEST] TEST FAILED
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   47
+UVM_WARNING :    1
+UVM_ERROR :    1
+UVM_FATAL :    0
+
+$finish at simulation time 900000 ps
+simx: run finished  end=2026-10-24 22:07:12  cpu=69.1s

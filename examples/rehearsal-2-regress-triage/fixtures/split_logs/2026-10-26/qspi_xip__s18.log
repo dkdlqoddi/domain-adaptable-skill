@@ -1,0 +1,15 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: qspi_xip_test  seed=18  host=farm07  start=2026-10-26 22:01:00
+UVM_INFO @ 0: reporter [RNTST] Running test qspi_xip_test...
+UVM_ERROR tb/env/qspi_scoreboard.sv(133) @ 910000: uvm_test_top.env.qspi_scb [XIP] fetched word mismatch addr=0x00120040 exp=0xe12fff1e act=0xe12fff1f
+UVM_INFO tb/test/qspi_xip_test.sv(55) @ 1000000: uvm_test_top [TEST] TEST FAILED
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   40
+UVM_WARNING :    0
+UVM_ERROR :    1
+UVM_FATAL :    0
+
+$finish at simulation time 1000000 ps
+simx: run finished  end=2026-10-26 22:05:00  cpu=200.0s

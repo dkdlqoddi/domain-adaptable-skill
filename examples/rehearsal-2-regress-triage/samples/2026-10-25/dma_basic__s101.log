@@ -1,0 +1,17 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: dma_basic_test  seed=101  host=farm16  start=2026-10-25 22:03:58
+UVM_INFO @ 0: reporter [RNTST] Running test dma_basic_test...
+UVM_INFO tb/env/dma_env.sv(64) @ 0: uvm_test_top.env [ENV] build_phase done
+UVM_INFO tb/seq/dma_basic_seq.sv(41) @ 120000: uvm_test_top.env.agt.sqr@@seq [SEQ] 65 transactions issued
+UVM_WARNING tb/env/dma_cov.sv(17) @ 980000: uvm_test_top.env.cov [COV] bin dma_len_max not hit
+UVM_INFO tb/test/dma_basic_test.sv(55) @ 1200000: uvm_test_top [TEST] TEST PASSED
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   51
+UVM_WARNING :    1
+UVM_ERROR :    0
+UVM_FATAL :    0
+
+$finish at simulation time 1200000 ps
+simx: run finished  end=2026-10-25 22:06:31  cpu=191.3s

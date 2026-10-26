@@ -28,7 +28,9 @@ domain-adaptable-skill/
 │       ├── lean/                  과잉 설계 감사 (diff / plan / all)
 │       ├── decide/                결정 3줄 기록
 │       └── wrapup/                마무리 점검, 복기 문서
-├── examples/rehearsal-interview-coach/   모의 과제로 9개 명령을 돌린 산출물 (문서, 코드, 명령별 출력)
+├── examples/
+│   ├── rehearsal-interview-coach/   1차 리허설: 웹 과제, S0까지 (문서, 코드, 명령별 출력)
+│   └── rehearsal-2-regress-triage/  2차 리허설: CLI 과제, P0·P1 완료, 계약 변경·병렬 위임 시험 (+ 직접 리허설용 키트)
 ├── scripts/
 │   ├── install.sh                 하네스를 프로젝트에 복사 (기존 파일은 보존)
 │   ├── pack.sh                    업로드용 dist/harness.zip 생성
@@ -104,17 +106,19 @@ ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사�
 ### 3. 토큰을 아끼는 구조
 | 무엇 | 언제 로드되나 | 크기 (근사) |
 |---|---|---|
-| 루트 `CLAUDE.md` | 항상 | 44줄, 약 900 토큰 |
+| 루트 `CLAUDE.md` | 항상 | 44줄, 약 950 토큰 |
 | 스킬 설명 9개 | 항상이지만 사용자 호출 전용이라 | 0 |
-| 스킬 본문 1개 | `/명령` 입력 때만 | 400~850 토큰 |
+| 스킬 본문 1개 | `/명령` 입력 때만 | 450~970 토큰 |
 | 참고 파일 4개 | 본문이 가리킬 때만 | 270~610 토큰 |
 | 모듈 `CLAUDE.md` | 그 폴더를 만질 때만 | 40줄 이하 |
 
 세션 시작 고정 비용은 약 1천 토큰입니다. 상태는 모두 `docs/`에 있으므로 슬라이스가 끝날 때마다 `/clear`로 비우고, 구현은 새 컨텍스트에서 시작하는 서브에이전트가 맡습니다. `scripts/check.sh`가 이 예산을 지키는지 검사합니다.
 
 ## 미리 연습하기
-- 이 하네스는 모의 과제 "인터뷰 연습 도우미"로 9개 명령을 모두 한 번 돌려 봤습니다. 각 단계에서 어떤 문서와 코드가 나오는지 `examples/rehearsal-interview-coach/`에서 먼저 훑어보세요.
-- 모의 과제로 2시간 압축 리허설을 두 번 합니다. 페르소나는 다른 AI 채팅에 "현업 담당자 역할, 할 일 정리 요청에는 답하지 말 것"을 시켜 대체합니다.
+- 이 하네스로 모의 과제 두 개를 처음부터 끝까지 돌려 봤습니다. 각 단계에서 어떤 문서와 코드가 나오는지 `examples/`에서 먼저 훑어보세요.
+  - 1차 "인터뷰 연습 도우미"(웹): S0까지 진행
+  - 2차 "회귀 결과 정리 도우미"(CLI): P0·P1 완료, 60분
+- 두 리허설 모두 사람 역할을 Claude가 대신했습니다. 이제 **직접** 한 번 해 보세요. `examples/rehearsal-2-regress-triage/kit/persona.md`를 다른 AI 채팅에 붙여 넣으면 담당자 역할을 합니다(시트는 읽지 말 것). 방법은 그 폴더의 README "직접 리허설하기"에 있습니다.
 - 도메인이 사전에 공개되면 `harness/.claude/skills/kickoff/templates/docs/domain/primer.md`를 써 두세요. 설치와 패키징에 자동으로 포함됩니다.
 - `scripts/check.sh`로 하네스 상태를 확인하고 `scripts/pack.sh`로 zip을 만듭니다.
 
@@ -124,6 +128,8 @@ ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사�
 **하네스를 못 올리면?** 치트시트 맨 아래의 6줄짜리 최소 CLAUDE.md를 손으로 입력하고 `docs/` 파일 4개 이름만 지키면 같은 흐름으로 일할 수 있습니다.
 
 **명령이 안 보이면?** Claude Code 버전이 오래된 경우 `.claude/skills/<name>/SKILL.md`를 `.claude/commands/<name>.md`로 복사하면 같은 형식으로 동작합니다.
+
+**Claude Code 대신 Codex만 있으면?** 프로젝트 루트에서 `cp CLAUDE.md AGENTS.md && mkdir -p .agents && cp -r .claude/skills .agents/skills`를 실행하고, 명령을 `/kickoff` 대신 `$kickoff`처럼 부릅니다. Codex CLI 0.164.0에서 스킬 9개가 보이고 `$kickoff`가 절차대로 동작하는 것을 확인했습니다. 서브에이전트 위임(`$delegate`)은 확인하지 못했습니다. 코파톤 과제는 Codex 기반이었다는 보도가 있습니다(`docs/01-cofa-probe.md` 8절).
 
 **왜 모듈을 많이 안 나누나요?** 나누는 것 자체가 과잉 설계일 수 있습니다. 검증 방법이 다르거나 병렬로 만들 가치가 있을 때만 나눕니다. 6시간 과제는 1~3 모듈이 정상입니다.
 

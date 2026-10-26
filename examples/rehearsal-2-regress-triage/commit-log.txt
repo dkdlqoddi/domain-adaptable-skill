@@ -1,0 +1,16 @@
+d10ba25 과제 저장소 초기 상태
+0e558e5 kickoff/interview: 작업 헌법·스킬·docs 템플릿과 인터뷰 1~4회차 결과, D-001·D-002
+5931a73 spec: SPEC P0 확정(F1~F3), CONTRACT v1(단일 CLI·게시 글·보관 TSV), fixtures, D-003~D-005
+a851373 workspace: 단일 모듈 확인, 슬라이스 S0~S3와 검증 명령, fixtures/check.sh(CONTRACT 샘플 검증 ①~④)
+3f408f9 S0: 걸어다니는 뼈대 — 첫 줄·세 칸(없음) 출력, 머리 줄만 있는 보관 TSV, UTF-8 고정 출력
+dbd090e S1: 실패·끊긴 로그 찾기, 묶음 기준 줄로 묶기, 보관 TSV 행 쓰기(비교 없음), test_regsum.py
+2151323 S1 lean: shortcut 표시 복구(첫 줄 비교 기준 하드코딩), 문서 문자열 슬라이스 꼬리표 제거, D-006
+917451c S2: 비교 기준 고르기, 새로 생김/계속 남음 나누기, seed 수 변화 표시
+c2b13e1 spec: F7 나눠 올리기 P1 판정, CONTRACT v2(4000바이트 넘을 때 줄 경계에서 나누기), 검증 ⑤와 fixtures, D-007
+04cc30c workspace: F7 나눠 올리기를 S4(P1, S3 다음)로 작업판에 추가
+989ee60 S3: 오류 경로(종료코드 2·경고, 오류 시 보관 폴더 안 만듦), 깨진 보관 파일 검사, 보관 파일 임시 파일→이름 바꾸기
+c10dfba S3: D-008 오류 경로의 빈칸 해석 기록
+c68d46b verify: 통합 체크포인트 — S0~S3 PASS, ⑤는 S4 몫
+5b7f7b6 S4: 4000바이트 넘는 날 묶음 줄 경계에서 메시지 N개로 나눠 올리기([k/N]·(이어서)·구분 줄), 보관 파일은 그대로
+d1e0a13 lean: 제출 전 정리 — __pycache__ 무시, 한 줄 한도 초과 한계에 shortcut 표시 (D-009)
+2e94bbb wrapup: README 사용법(설치→실행→확인), RETRO.md, 최종 통합 체크포인트

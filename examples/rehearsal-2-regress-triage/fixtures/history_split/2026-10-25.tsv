@@ -1,0 +1,4 @@
+test	total	seeds	key
+ddr_init	5	12	UVM_FATAL tb/env/ddr_phy_mon.sv(#) @ #: uvm_test_top.env.phy_mon [PHY] write leveling did not converge after # iterations on byte lane #
+sec_aes	5	22	UVM_ERROR tb/env/aes_scoreboard.sv(#) @ #: uvm_test_top.env.aes_scb [AES] ciphertext block # mismatch exp=# act=#
+usb_enum	5	26,27	UVM_ERROR tb/env/usb_dev_chk.sv(#) @ #: uvm_test_top.env.usb_chk [USB] GET_DESCRIPTOR returned # bytes expected # on endpoint #

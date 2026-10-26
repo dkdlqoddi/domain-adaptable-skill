@@ -1,0 +1,50 @@
+{
+ "enabledPlugins": {
+  "frontend-design@claude-plugins-official": false,
+  "code-review@claude-plugins-official": false,
+  "skill-creator@claude-plugins-official": false,
+  "code-simplifier@claude-plugins-official": false,
+  "playwright@claude-plugins-official": false,
+  "claude-md-management@claude-plugins-official": false,
+  "typescript-lsp@claude-plugins-official": false,
+  "feature-dev@claude-plugins-official": false,
+  "firecrawl@claude-plugins-official": false
+ },
+ "skillOverrides": {
+  "find-skills": "off",
+  "artifact-emulator": "off",
+  "anthropic-skills:artifact-emulator": "off",
+  "built-in-browser": "off",
+  "anthropic-skills:built-in-browser": "off",
+  "chrome-browser": "off",
+  "anthropic-skills:chrome-browser": "off",
+  "computer-use": "off",
+  "anthropic-skills:computer-use": "off",
+  "deep-research": "off",
+  "anthropic-skills:deep-research": "off",
+  "docs": "off",
+  "anthropic-skills:docs": "off",
+  "docx": "off",
+  "anthropic-skills:docx": "off",
+  "google-workspace": "off",
+  "anthropic-skills:google-workspace": "off",
+  "import-memory": "off",
+  "anthropic-skills:import-memory": "off",
+  "morning": "off",
+  "anthropic-skills:morning": "off",
+  "pdf": "off",
+  "anthropic-skills:pdf": "off",
+  "pptx": "off",
+  "anthropic-skills:pptx": "off",
+  "skill-creator": "off",
+  "anthropic-skills:skill-creator": "off",
+  "xlsx": "off",
+  "anthropic-skills:xlsx": "off"
+ },
+ "autoMemoryEnabled": false,
+ "effortLevel": "high",
+ "env": {
+  "CLAUDE_CODE_EFFORT_LEVEL": "high",
+  "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"
+ }
+}

@@ -1,0 +1,3 @@
+test	total	seeds	key
+pcie_link	2	11
+uart_loop	one	7	UVM_ERROR tb/env/uart_chk.sv(#) @ #: uvm_test_top.env.chk [PARITY] parity error on rx byte # (lane #)

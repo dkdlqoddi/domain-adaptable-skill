@@ -1,0 +1,18 @@
+simx 2024.09 -- event-driven simulator (rehearsal mock)
+Run: axi_stress_test  seed=56  host=farm05  start=2026-10-25 22:10:33
+UVM_INFO @ 0: reporter [RNTST] Running test axi_stress_test...
+UVM_INFO tb/env/axi_env.sv(64) @ 0: uvm_test_top.env [ENV] build_phase done
+UVM_INFO tb/seq/axi_stress_seq.sv(41) @ 120000: uvm_test_top.env.agt.sqr@@seq [SEQ] 70 transactions issued
+UVM_INFO tb/seq/axi_stress_seq.sv(90) @ 2000000: uvm_test_top.env.agt.sqr@@seq [SEQ] 4096 outstanding transactions
+UVM_INFO tb/seq/axi_stress_seq.sv(90) @ 3900000: uvm_test_top.env.agt.sqr@@seq [SEQ] 4096 outstanding transactions
+UVM_WARNING tb/env/axi_cov.sv(17) @ 980000: uvm_test_top.env.cov [COV] bin axi_len_max not hit
+--- UVM Report Summary ---
+
+** Report counts by severity
+UVM_INFO :   66
+UVM_WARNING :    1
+UVM_ERROR :    0
+UVM_FATAL :    0
+
+$finish at simulation time 48000000 ps
+simx: run finished  end=2026-10-26 01:47:26  cpu=132.8s
