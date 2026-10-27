@@ -5,7 +5,7 @@ Cofa Probe 환경(크래프톤의 AI 실무 역량 평가 플랫폼)에서 열�
 
 ## 30초 설명
 Cofa Probe는 결과물만 보지 않습니다. 6시간 동안 **AI와 어떻게 일했는지**(어떤 질문을 했나, 어떻게 쪼개 위임했나, 어떻게 검증했나, AI의 과잉 설계를 통제했나, 토큰을 얼마나 썼나)를 20여 개 평가 에이전트가 기록하고 채점합니다.
-이 하네스는 그 평가 방식에 맞는 일하는 순서를 **9개의 슬래시 명령**으로 만들고, 과정에서 생기는 지식과 결정을 **`docs/` 폴더의 파일**로 남깁니다. 파일이 남으니 세션을 비워도 안전하고, 토큰이 적게 듭니다.
+이 하네스는 그 평가 방식에 맞는 일하는 순서를 **5개의 슬래시 명령**으로 만들고, 과정에서 생기는 지식과 결정을 **`docs/` 폴더의 파일**로 남깁니다. 파일이 남으니 세션을 비워도 안전하고, 토큰이 적게 듭니다. 결정 기록은 명령이 알아서 하고, 명령 하나의 답은 15줄 이내로 짧습니다.
 
 ## 폴더 지도
 ```
@@ -17,17 +17,13 @@ domain-adaptable-skill/
 │   ├── 03-cheatsheet.md           당일 한 장 치트시트 (인쇄용)
 │   └── 04-design-notes.md         왜 이렇게 설계했나 (grill-with-docs, ponytail, 토큰)
 ├── harness/                       ← 해커톤 당일 프로젝트에 올리는 것 전부
-│   ├── CLAUDE.md                  항상 로드되는 44줄 규칙 (역할, docs 규칙, 작은 코드 원칙)
-│   └── .claude/skills/            9개 스킬 = 9개 슬래시 명령
+│   ├── CLAUDE.md                  항상 로드되는 51줄 규칙 (역할, docs 규칙, 결정 자동 기록, 짧은 출력, 작은 코드 원칙)
+│   └── .claude/skills/            5개 스킬 = 5개 슬래시 명령
 │       ├── kickoff/               시작: 과제 재정의, 모르는 것, 시간 계획 (+ docs/ 템플릿)
-│       ├── interview/             페르소나 질문 생성 · 답변 소화
-│       ├── spec/                  SPEC·CONTRACT 확정 (+ 도메인별 계약 예시)
-│       ├── workspace/             모듈 지침·작업판 생성·감사 (+ 아키타입, 템플릿)
-│       ├── delegate/              슬라이스 위임 브리프 (+ 템플릿)
-│       ├── verify/                검증 명령 실행, 통합 확인
-│       ├── lean/                  과잉 설계 감사 (diff / plan / all)
-│       ├── decide/                결정 3줄 기록
-│       └── wrapup/                마무리 점검, 복기 문서
+│       ├── interview/             페르소나 질문 생성. 답을 붙이면 정리하고 다음 질문까지
+│       ├── spec/                  SPEC·입출력 샘플·슬라이스 확정 (+ 계약 템플릿·예시, 모듈 지침 템플릿)
+│       ├── delegate/              슬라이스 위임 → 검증·회귀 확인 → 과잉 설계 정리 → 커밋 (+ 브리프 템플릿)
+│       └── wrapup/                통합 검증, 저장소 정리, 실행 README, 복기 문서
 ├── examples/
 │   ├── rehearsal-interview-coach/   1차 리허설: 웹 과제, S0까지 (문서, 코드, 명령별 출력)
 │   ├── rehearsal-2-regress-triage/  2차 리허설: CLI 과제, P0·P1 완료, 계약 변경·병렬 위임 시험
@@ -43,18 +39,18 @@ domain-adaptable-skill/
 ```
 <과제 프로젝트>/
 ├── CLAUDE.md                  규칙 (항상 로드)
-├── .claude/skills/…           9개 명령
+├── .claude/skills/…           5개 명령
 ├── docs/
-│   ├── SPEC.md                무엇을 만들고(P0/P1/P2), 무엇을 안 만드나(비목표), 제약
-│   ├── CONTRACT.md            모듈 사이 인터페이스와 샘플 값 (루트만 수정)
-│   ├── TASKS.md               슬라이스 상태, 검증 명령, BLOCKER, 통합 체크포인트
-│   ├── DECISIONS.md           결정과 거절한 AI 제안 (D-001, D-002, …)
+│   ├── SPEC.md                무엇을 만들고(P0/P1/P2), 무엇을 안 만드나(비목표), 제약, 입출력 샘플(계약)
+│   ├── TASKS.md               시간표, 슬라이스 상태, 검증 명령, BLOCKER, 통합 체크포인트
+│   ├── DECISIONS.md           결정과 거절한 AI 제안 (D-001, D-002, … 명령이 자동으로 기록)
 │   ├── GLOSSARY.md            현업 용어집
-│   ├── domain/                현업 지식: persona · workflow · constraints · success + 인덱스
+│   ├── domain/                현업 지식: persona · workflow · constraints · success + 인덱스 (+ 반도체 primer)
+│   ├── CONTRACT.md            모듈이 2개 이상일 때만: 모듈 사이 인터페이스 (/spec이 생성)
 │   ├── briefs/                위임 브리프 사본 (/delegate가 생성)
 │   └── RETRO.md               복기 문서 (/wrapup이 생성)
-├── fixtures/                  계약의 샘플 입출력 파일 (/workspace가 생성)
-└── <모듈>/CLAUDE.md           모듈별 40줄 이하 지침 (/workspace가 생성)
+├── fixtures/                  입출력 샘플 파일 (/spec이 생성)
+└── <모듈>/CLAUDE.md           모듈이 2개 이상일 때만, 40줄 이하 지침 (/spec이 생성)
 ```
 
 ## 10분 빠른 시작 (당일)
@@ -65,75 +61,66 @@ domain-adaptable-skill/
 
 ## 전체 흐름
 ```
- 단계              명령                           만들어지는 것
- ───────────────  ─────────────────────────────  ────────────────────────────────────
- 1 탐색·정의       /kickoff                       docs/ 뼈대, 모르는 것 목록, 시간표
-   (코딩 금지)     /interview  ×3~4회             domain/*.md, GLOSSARY.md, SPEC 초안
- 2 계약·뼈대       /spec                          SPEC.md(P0≤3, 비목표), CONTRACT.md, fixtures/
-                  /workspace                     <모듈>/CLAUDE.md, TASKS.md의 슬라이스
-                  /delegate S0 → /verify S0      입력 하나가 끝까지 지나가는 뼈대
- 3 구현 (반복)     /delegate Sn                   docs/briefs/Sn.md, 구현
-                  /verify Sn                     검증 통과
-                  /lean                          SPEC에 없는 추가물 제거
-                  /decide                        DECISIONS.md 항목
-                  git commit                     슬라이스 단위 커밋 (과정의 증거)
-                  /clear                         컨텍스트 비우기 (상태는 docs/에 있음)
-   매 정시         /verify all                    통합 체크포인트
- 4 마무리          /lean all → /wrapup check      깨끗한 저장소, 실행 README
-                  /wrapup retro                  RETRO.md (사후 Q&A·면접 대비)
+ 단계              명령                             만들어지는 것
+ ───────────────  ───────────────────────────────  ────────────────────────────────────
+ 1 탐색·정의       /kickoff                         docs/ 뼈대, 모르는 것 목록, 시간표
+   (코딩 금지)     /interview → /interview <답> …   domain/*.md, GLOSSARY.md, SPEC 초안 (3~4회)
+ 2 계약·뼈대       /spec                            SPEC.md(P0≤3, 비목표, 입출력 샘플), fixtures/, 슬라이스
+                  /delegate S0                     입력 하나가 끝까지 지나가는 뼈대
+ 3 구현 (반복)     /delegate Sn                     브리프 → 위임 → 검증·회귀 확인 → 과잉 설계 정리 → 커밋
+                  /clear                           컨텍스트 비우기 (상태는 docs/에 있음)
+ 4 마무리          /wrapup check                    통합 검증, 깨끗한 저장소, 실행 README
+                  /wrapup retro                    RETRO.md (사후 Q&A·면접 대비)
+ 결정은 각 명령이 DECISIONS.md에 자동으로 기록합니다.
 ```
 
-## 9개 명령
+## 5개 명령
 | 명령 | 언제 | 하는 일 | 남기는 것 |
 |---|---|---|---|
-| `/kickoff [경로] [6h]` | 시작 직후 1회 | 과제 지시문을 내 말로 재정의, 모르는 것 6범주, 시간표 | `docs/` 뼈대, SPEC 1·7절 |
-| `/interview [digest 답변]` | 탐색 단계, 반복 | 페르소나에게 물을 질문 3~5개(바텀업 사다리) / 받은 답을 사실·용어·제약으로 분리해 기록 | `domain/*.md`, `GLOSSARY.md`, SPEC 3·5절 |
-| `/spec` | 인터뷰 후 1회 | P0 3개 이하와 비목표 확정, 모듈 간 계약을 샘플 값으로 | `SPEC.md`, `CONTRACT.md`, `fixtures/` |
-| `/workspace` | 계약 후 1회 | 폴더를 아키타입으로 분류, 모듈 지침 생성, 슬라이스 작성, 감사 | `<모듈>/CLAUDE.md`, `TASKS.md` |
-| `/delegate <ID>` | 슬라이스마다 | 브리프 작성 → 승인 → 서브에이전트 위임 → 루트에서 재검증 → 범위 확인 → 보드 갱신 | `docs/briefs/`, 구현 |
-| `/verify [ID\|all\|ui]` | 슬라이스 후, 매시간, 제출 전 | 검증 명령 실행, 통합 왕복, UI 점검, 실패 시 재현부터 | TASKS 체크포인트 |
-| `/lean [diff\|plan\|all]` | 구현 후, 큰 작업 전, 제출 전 | SPEC 근거 없는 추가물을 찾아 제거 제안, 결정 기록 | `DECISIONS.md` 항목, `shortcut:` 주석 |
-| `/decide <한 줄>` | 결정 직후 | D-NNN 번호로 상황·선택·대안·AI 제안 여부 기록 | `DECISIONS.md` 항목 |
-| `/wrapup [check\|retro]` | 마감 60분 / 30분 전 | 최종 검증·잔재 정리·README / 복기 문서 생성 | `RETRO.md` |
+| `/kickoff [경로] [4h]` | 시작 직후 1회 | 과제 지시문을 내 말로 재정의, 모르는 것 6범주, 시간표 | `docs/` 뼈대, SPEC 1·7절, TASKS 시간표 |
+| `/interview [답변]` | 탐색 단계, 반복 | 처음엔 질문 3~5개(바텀업 사다리). 페르소나의 답을 붙이면 사실·용어·제약으로 나눠 기록하고 다음 질문까지 | `domain/*.md`, `GLOSSARY.md`, SPEC 3·5절 |
+| `/spec` | 인터뷰 후 (새 요구가 생기면 다시) | P0 3개 이하·비목표 확정, 입출력을 샘플 값으로, 검증 명령이 붙은 슬라이스. 모듈이 여럿일 때만 CONTRACT와 모듈 지침 | `SPEC.md`, `fixtures/`, `TASKS.md`, 커밋 |
+| `/delegate <ID>` | 슬라이스마다 | 브리프 → 승인 → 서브에이전트 위임 → 루트에서 재검증·회귀 확인 → 과잉 설계 제거 제안 → 보드 갱신 → 커밋 | `docs/briefs/`, 구현, 커밋 |
+| `/wrapup [check\|retro]` | 마감 60분 / 30분 전 | 통합 검증·화면 확인·저장소 전체 정리·실행 README / 복기 문서 | `RETRO.md` |
 
-모든 명령은 **사람이 호출**합니다. 모델이 알아서 꺼내 쓰지 않도록 설정(`disable-model-invocation: true`)했기 때문에, 호출하기 전까지 토큰을 전혀 쓰지 않고, "내가 단계를 지휘했다"는 로그가 남습니다.
+모든 명령은 **사람이 호출**합니다. 모델이 알아서 꺼내 쓰지 않도록 설정(`disable-model-invocation: true`)했기 때문에, 호출하기 전까지 토큰을 전혀 쓰지 않고, "내가 단계를 지휘했다"는 로그가 남습니다. 처음에는 명령이 9개였는데 직접 해 보니 너무 복잡해서 5개로 합쳤습니다(`docs/04-design-notes.md` 8절).
 
 ## 세 가지 설계 원칙
 ### 1. 도메인 지식을 쌓는 구조 (grill-with-docs 방식)
-grill-with-docs는 계획을 집요하게 인터뷰하면서 합의된 용어를 `GLOSSARY.md`에, 결정을 ADR에 바로 적는 스킬입니다. 여기서는 인터뷰 상대가 사용자가 아니라 **페르소나 에이전트**이므로, `/interview`가 질문을 만들고(questions) 답을 소화해(digest) `docs/domain/<주제>.md`, `GLOSSARY.md`, `SPEC.md`에 나눠 적습니다. `domain/README.md` 인덱스만 읽어도 무엇을 아는지 보이고, 모듈은 필요한 파일 하나만 엽니다. 결정은 `DECISIONS.md` 한 파일에 D-NNN으로 쌓입니다.
+grill-with-docs는 계획을 집요하게 인터뷰하면서 합의된 용어를 `GLOSSARY.md`에, 결정을 ADR에 바로 적는 스킬입니다. 여기서는 인터뷰 상대가 사용자가 아니라 **페르소나 에이전트**이므로, `/interview`가 질문을 만들고, 답을 붙여 실행하면 소화해서 `docs/domain/<주제>.md`, `GLOSSARY.md`, `SPEC.md`에 나눠 적은 뒤 다음 질문을 냅니다. `domain/README.md` 인덱스만 읽어도 무엇을 아는지 보이고, 모듈은 필요한 파일 하나만 엽니다. 결정은 명령이 생길 때마다 `DECISIONS.md` 한 파일에 D-NNN으로 쌓습니다.
 
 ### 2. 과잉 설계 방어 (ponytail 방식)
-ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사다리(필요한가 → 이미 있나 → 표준 라이브러리 → 설치된 의존성 → 한 줄 → 최소 구현)를 내려가고, 보안·입력 검증·데이터 보호는 절대 자르지 않으며, 답변 끝에 뺀 것과 리스크를 적습니다. 이 규칙을 `CLAUDE.md`에 12줄로 **항상 켜 두고**(스킬은 모델이 자동으로 꺼내 쓰지 않는 경우가 많아서), 감사 절차는 `/lean`으로 분리했습니다. Cofa Probe에 맞춰 **쳐낸 것을 `DECISIONS.md`에 기록**하는 단계를 더했습니다. 그 기록이 인지 점수와 Q&A 답변의 근거가 됩니다.
+ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사다리(필요한가 → 이미 있나 → 표준 라이브러리 → 설치된 의존성 → 한 줄 → 최소 구현)를 내려가고, 보안·입력 검증·데이터 보호는 절대 자르지 않으며, 답변 끝에 뺀 것과 리스크를 적습니다. 이 규칙을 `CLAUDE.md`에 12줄로 **항상 켜 두고**(스킬은 모델이 자동으로 꺼내 쓰지 않는 경우가 많아서), 감사는 `/delegate`(슬라이스마다 diff)와 `/wrapup`(제출 전 저장소 전체)이 합니다. Cofa Probe에 맞춰 **쳐낸 것을 `DECISIONS.md`에 자동으로 기록**합니다. 그 기록이 인지 점수와 Q&A 답변의 근거가 됩니다.
 
 ### 3. 토큰을 아끼는 구조
 | 무엇 | 언제 로드되나 | 크기 (근사) |
 |---|---|---|
-| 루트 `CLAUDE.md` | 항상 | 44줄, 약 950 토큰 |
-| 스킬 설명 9개 | 항상이지만 사용자 호출 전용이라 | 0 |
-| 스킬 본문 1개 | `/명령` 입력 때만 | 450~1,000 토큰 |
-| 참고 파일 4개 | 본문이 가리킬 때만 | 270~610 토큰 |
-| 모듈 `CLAUDE.md` | 그 폴더를 만질 때만 | 40줄 이하 |
+| 루트 `CLAUDE.md` | 항상 | 51줄, 약 1,100 토큰 |
+| 스킬 설명 5개 | 항상이지만 사용자 호출 전용이라 | 0 |
+| 스킬 본문 1개 | `/명령` 입력 때만 | 830~1,230 토큰 |
+| 참고 파일 4개 | 본문이 가리킬 때만 | 300~630 토큰 |
+| 모듈 `CLAUDE.md` | 모듈이 여럿일 때, 그 폴더를 만질 때만 | 40줄 이하 |
 
-세션 시작 고정 비용은 약 1천 토큰입니다. 상태는 모두 `docs/`에 있으므로 슬라이스가 끝날 때마다 `/clear`로 비우고, 구현은 새 컨텍스트에서 시작하는 서브에이전트가 맡습니다. `scripts/check.sh`가 이 예산을 지키는지 검사합니다.
+세션 시작 고정 비용은 약 1,100 토큰입니다. 상태는 모두 `docs/`에 있으므로 슬라이스가 끝날 때마다 `/clear`로 비우고, 구현은 새 컨텍스트에서 시작하는 서브에이전트가 맡습니다. `scripts/check.sh`가 이 예산을 지키는지 검사합니다.
 
 ## 미리 연습하기
-- 이 하네스로 모의 과제 두 개를 처음부터 끝까지 돌려 봤습니다. 각 단계에서 어떤 문서와 코드가 나오는지 `examples/`에서 먼저 훑어보세요.
+- 모의 과제 두 개를 처음부터 끝까지 돌려 봤습니다(명령이 9개였던 이전 버전). 각 단계에서 어떤 문서와 코드가 나오는지 `examples/`에서 훑어볼 수 있습니다.
   - 1차 "인터뷰 연습 도우미"(웹): S0까지 진행
   - 2차 "회귀 결과 정리 도우미"(CLI): P0·P1 완료, 60분
-- 두 리허설 모두 사람 역할을 Claude가 대신했습니다. 이제 **직접** 한 번 해 보세요. 처음 보는 반도체 과제 키트가 `examples/rehearsal-3-yield-kit/`에 있고, 방법은 그 폴더의 `README.md`에 있습니다. `persona.md`와 `after-rehearsal/`은 끝날 때까지 열지 마세요.
+- 3차는 사람이 직접 했고, 18분 만에 "너무 복잡하다"는 결론이 나와 명령을 5개로 줄였습니다. 줄인 하네스로 같은 키트를 다시 해 보세요. 키트는 `examples/rehearsal-3-yield-kit/`에 있고, 방법은 그 폴더의 `README.md`에 있습니다. `persona.md`와 `after-rehearsal/`은 끝날 때까지 열지 마세요.
 - 반도체 현장 사전 지식 `harness/.claude/skills/kickoff/templates/docs/domain/primer.md`가 들어 있습니다(SK하이닉스 본선 대비). 설치와 패키징에 자동으로 포함되고, `/interview`가 질문 재료로만 읽습니다. 다른 도메인 대회라면 지우거나 바꾸세요.
 - `scripts/check.sh`로 하네스 상태를 확인하고 `scripts/pack.sh`로 zip을 만듭니다.
 
 ## 자주 묻는 질문
-**웹 프로젝트가 아니어도 되나요?** 됩니다. 하네스 어디에도 frontend/backend 가정이 없습니다. 모듈은 아키타입(코어·드라이버·컨트롤러·인터페이스·공유)으로, 계약은 API·CLI·파일 포맷·함수·상태 전이 중 맞는 것으로 적습니다. 예시는 `harness/.claude/skills/spec/contract-examples.md`에 있습니다.
+**웹 프로젝트가 아니어도 되나요?** 됩니다. 하네스 어디에도 frontend/backend 가정이 없습니다. 계약은 API·CLI·파일 포맷·함수·상태 전이 중 맞는 것으로 적습니다. 예시는 `harness/.claude/skills/spec/contract-examples.md`에 있습니다.
 
-**하네스를 못 올리면?** 치트시트 맨 아래의 6줄짜리 최소 CLAUDE.md를 손으로 입력하고 `docs/` 파일 4개 이름만 지키면 같은 흐름으로 일할 수 있습니다.
+**하네스를 못 올리면?** 치트시트 맨 아래의 6줄짜리 최소 CLAUDE.md를 손으로 입력하고 `docs/` 파일 3개(SPEC·TASKS·DECISIONS) 이름만 지키면 같은 흐름으로 일할 수 있습니다.
 
 **명령이 안 보이면?** Claude Code 버전이 오래된 경우 `.claude/skills/<name>/SKILL.md`를 `.claude/commands/<name>.md`로 복사하면 같은 형식으로 동작합니다.
 
-**Claude Code 대신 Codex만 있으면?** 프로젝트 루트에서 `cp CLAUDE.md AGENTS.md && mkdir -p .agents && cp -r .claude/skills .agents/skills`를 실행하고, 명령을 `/kickoff` 대신 `$kickoff`처럼 부릅니다. Codex CLI 0.164.0에서 스킬 9개가 보이고 `$kickoff`가 절차대로 동작하는 것을 확인했습니다. 서브에이전트 위임(`$delegate`)은 확인하지 못했습니다. 코파톤 과제는 Codex 기반이었다는 보도가 있습니다(`docs/01-cofa-probe.md` 8절).
+**Claude Code 대신 Codex만 있으면?** 프로젝트 루트에서 `cp CLAUDE.md AGENTS.md && mkdir -p .agents && cp -r .claude/skills .agents/skills`를 실행하고, 명령을 `/kickoff` 대신 `$kickoff`처럼 부릅니다. Codex CLI 0.164.0에서 스킬이 보이고 `$kickoff`가 절차대로 동작하는 것을 확인했습니다(명령이 9개였던 이전 버전으로 확인). 서브에이전트 위임(`$delegate`)은 확인하지 못했습니다. 코파톤 과제는 Codex 기반이었다는 보도가 있습니다(`docs/01-cofa-probe.md` 8절).
 
-**왜 모듈을 많이 안 나누나요?** 나누는 것 자체가 과잉 설계일 수 있습니다. 검증 방법이 다르거나 병렬로 만들 가치가 있을 때만 나눕니다. 6시간 과제는 1~3 모듈이 정상입니다.
+**왜 모듈을 많이 안 나누나요?** 나누는 것 자체가 과잉 설계일 수 있습니다. 기본은 1개이고, 검증 방법이 다르거나 병렬로 만들 가치가 있을 때만 나눕니다. 모듈이 1개면 계약(입출력 샘플)은 `SPEC.md` 8절에 두고 `CONTRACT.md`와 모듈 지침은 만들지 않습니다.
 
 **git에 올려도 되나요?** `harness/`는 그대로 커밋해도 됩니다. `dist/`는 `.gitignore`에 있습니다.
 

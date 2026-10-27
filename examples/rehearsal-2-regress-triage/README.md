@@ -1,5 +1,7 @@
 # 리허설 2 — 모의 과제 "회귀 결과 정리 도우미" (반도체 검증, CLI)
 
+> 이 기록은 명령이 9개였던 이전 하네스(2026-10-26까지)로 만들었습니다. 지금은 5개로 합쳤습니다: `/interview`·digest → `/interview`, `/spec`·`/workspace` → `/spec`, `/delegate`·`/verify`·`/lean` → `/delegate`, `/decide` → 자동 기록. 자세한 내용은 `docs/04-design-notes.md` 8절.
+
 1차 리허설(`../rehearsal-interview-coach/`)에서 해 보지 못한 것을 채우려고 돌린 두 번째 리허설입니다. 실제 해커톤 제출물이 아닙니다.
 
 | | 1차 (2026-10-23) | 2차 (2026-10-26) |
