@@ -14,7 +14,7 @@
 | `CONTRACT.md` | 모듈이 2개 이상일 때만: 모듈 사이 인터페이스와 샘플 값 | **루트만** |
 | `TASKS.md` | 시간 계획, 슬라이스 상태, 검증 명령, BLOCKER, 통합 체크포인트 | 모두(자기 항목만) |
 | `DECISIONS.md` | 결정 기록: 선택·대안·기각 이유·거절한 AI 제안 | 루트(자동) |
-| `GLOSSARY.md`, `domain/` | 현업 용어와 지식(인터뷰·grill 결과). 코드 이름은 이 용어를 따른다 | `/interview`·`/grill` |
+| `GLOSSARY.md`, `domain/` | 현업 용어와 지식(인터뷰·다지기 결과). 코드 이름은 이 용어를 따른다 | `/interview` |
 
 - 세션 시작 시 `docs/TASKS.md`와 `docs/SPEC.md`의 P0 부분만 읽는다. 나머지는 필요할 때 연다.
 - 계약(SPEC 8절, CONTRACT)은 루트에서만 바꾼다. 모듈 작업 중 계약 변경이 필요하면 멈추고 알린다: 서브에이전트는 보고에 `BLOCKER:`로, 모듈 세션은 `TASKS.md` BLOCKER 표에.
@@ -48,4 +48,4 @@
 - 저장소 전체를 훑지 않는다. `node_modules`, 빌드 산출물, `.git`, 로그, 데이터 덤프는 열지 않는다.
 
 ## 명령 (사람이 순서대로 실행)
-`/kickoff` → `/interview`(답을 붙여 반복) → `/grill`(다지기·요약·퀴즈, 선택) → `/spec` → `/delegate`(슬라이스마다) → `/wrapup`
+`/kickoff` → `/interview`(답을 붙여 반복, 끝나면 다지기·요약·퀴즈) → `/spec` → `/delegate`(슬라이스마다) → `/wrapup`(검증·복기·퀴즈)

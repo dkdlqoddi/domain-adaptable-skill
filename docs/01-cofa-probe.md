@@ -55,11 +55,11 @@ Cofa Probe(코파 프로브)는 크래프톤이 만든 **AI 기반 실무 역량
 ## 7. 우리에게 주는 결론 — 남겨야 할 증거
 | 평가가 보는 것 | 우리가 남길 증거 | 만드는 도구 |
 |---|---|---|
-| 문제 정의 능력 | 바텀업 인터뷰 질문 로그, 그것을 소화한 `docs/domain/`, `GLOSSARY.md`, `SPEC.md`의 비목표 | `/kickoff` `/interview` `/grill` `/spec` |
+| 문제 정의 능력 | 바텀업 인터뷰 질문 로그, 그것을 소화한 `docs/domain/`, `GLOSSARY.md`, `SPEC.md`의 비목표 | `/kickoff` `/interview` `/spec` |
 | 쪼개고 지휘 (의도) | `SPEC.md` 8절 입출력 샘플(모듈이 여럿이면 `CONTRACT.md`), `TASKS.md`의 슬라이스, `docs/briefs/`의 위임 브리프, 서브에이전트 사용 로그 | `/spec` `/delegate` |
 | 검증 루프 (기술) | 슬라이스별 검증·회귀 확인 로그, 통합 체크포인트, 깨지지 않은 화면 | `/delegate` `/wrapup` |
 | 과잉 설계 통제 (인지) | diff 감사 기록, 거절한 AI 제안이 자동으로 적힌 `DECISIONS.md`, `shortcut:` 주석 | `/delegate` `/wrapup` |
-| 이해와 설명 (인지, Q&A) | `RETRO.md`의 결정·대안·트레이드오프·예상 질문, 대화 로그에 남는 `/grill`의 문답과 퀴즈 | `/wrapup` `/grill` |
+| 이해와 설명 (인지, Q&A) | `RETRO.md`의 결정·대안·트레이드오프·예상 질문, 대화 로그에 남는 다지기 문답과 퀴즈 | `/interview` `/wrapup` |
 | 토큰 효율 | 짧은 CLAUDE.md, 호출 전에는 비용 0인 스킬, 파일 기반 메모리와 `/clear`, 필요한 파일만 읽는 규칙 | 하네스 구조 전체 |
 
 ## 8. 당일 반드시 확인할 것 (2차 정보의 한계)
