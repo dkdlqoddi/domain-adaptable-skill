@@ -4,22 +4,29 @@
 
 > ⚠️ **`persona.md`와 `after-rehearsal/` 폴더는 리허설이 끝날 때까지 열지 마세요.** 숨은 사실과 정답이 들어 있습니다. `samples/`는 과제 데이터라 열어 봐도 됩니다.
 
-## 준비 (5분)
-1. 새 폴더에 과제를 놓고 하네스를 설치합니다. `<저장소>`는 이 저장소 경로입니다(예: `~/013_hackathon/domain-adaptable-skill`).
+## 준비 (10분)
+명령은 새 터미널에 입력합니다. 첫 줄의 `R`은 이 저장소 경로이고, 터미널을 새로 열면 그 줄부터 다시 입력합니다.
+1. 새 폴더에 과제를 놓고 하네스를 설치한 뒤 첫 커밋을 합니다. 첫 커밋이 있어야 이후 커밋과 `/lean`의 diff에 내 작업만 남습니다.
    ```
+   R=~/013_hackathon/domain-adaptable-skill
    mkdir -p ~/r3 && cd ~/r3 && git init
-   cp <저장소>/examples/rehearsal-3-yield-kit/task-README.md README.md
-   cp -r <저장소>/examples/rehearsal-3-yield-kit/samples .
-   unzip -n <저장소>/dist/harness.zip
+   cp $R/examples/rehearsal-3-yield-kit/task-README.md README.md
+   cp -r $R/examples/rehearsal-3-yield-kit/samples .
+   unzip -n $R/dist/harness.zip
+   git add -A && git commit -qm "과제 초기 상태 + 하네스"
    ```
-2. 페르소나를 준비합니다. 아래 명령은 `persona.md`를 화면에 띄우지 않고 한글이 깨지지 않게 클립보드로 복사합니다(WSL 기준. macOS는 `pbcopy < persona.md`).
+2. 페르소나를 준비합니다. 아래 명령은 `persona.md`를 화면에 띄우지 않고 한글이 깨지지 않게 클립보드로 복사합니다(WSL 기준. macOS는 `pbcopy < $R/examples/rehearsal-3-yield-kit/persona.md`).
    ```
-   powershell.exe -NoProfile -Command "Get-Content -Raw -Encoding UTF8 '$(wslpath -w <저장소>/examples/rehearsal-3-yield-kit/persona.md)' | Set-Clipboard"
+   powershell.exe -NoProfile -Command "Get-Content -Raw -Encoding UTF8 '$(wslpath -w $R/examples/rehearsal-3-yield-kit/persona.md)' | Set-Clipboard"
    ```
    Gemini 같은 다른 AI의 **새 채팅**에 붙여 넣고 보냅니다. 답이 "네, 준비됐습니다. 편하게 물어보세요." 한 줄이면 준비가 끝난 것입니다. 지시문을 요약하는 답이 나오면 읽지 말고 그 채팅을 닫은 뒤 새 채팅에서 다시 합니다.
+3. Claude를 개인 플러그인·MCP·자동 메모리를 끈 채로 시작합니다. 그냥 `claude`로 열면 이것들이 함께 켜져 실전 환경과 달라집니다. 설정 파일은 리허설 2 키트의 것을 씁니다.
+   ```
+   claude --strict-mcp-config --settings $R/examples/rehearsal-2-regress-triage/kit/settings.json
+   ```
 
 ## 진행 (2시간 압축판, 실전은 `/kickoff 4h`)
-- `claude` → `/kickoff 2h` → 이후는 각 명령이 마지막 줄에서 알려 주는 대로 갑니다. `docs/03-cheatsheet.md`를 옆에 둡니다.
+- 준비 3에서 연 Claude에 `/kickoff 2h` → 이후는 각 명령이 마지막 줄에서 알려 주는 대로 갑니다. `docs/03-cheatsheet.md`를 옆에 둡니다.
 - `/interview`가 만든 질문을 본인 말로 바꿔 페르소나 채팅에 묻고, 받은 답을 `/interview digest <답변>`으로 넘깁니다.
 - 슬라이스 두 개쯤 끝나면 실제 출력을 페르소나에게 한 번 보여 주고 반응을 받습니다.
 - 마지막 15분은 `/wrapup retro` → `RETRO.md`를 끝까지 읽습니다.
@@ -31,4 +38,4 @@
 - 슬라이스마다 커밋하고 `/clear` 하는가
 
 ## 끝난 뒤
-`after-rehearsal/answer-key.md`를 열어 숨은 사실과 함정을 확인하고, 내 SPEC·결정·결과와 비교합니다. 정답 계산은 `python3 after-rehearsal/check_answer.py samples/2026-10-25`입니다.
+`after-rehearsal/answer-key.md`를 열어 숨은 사실과 함정을 확인하고, 내 SPEC·결정·결과와 비교합니다. 정답 계산은 `python3 $R/examples/rehearsal-3-yield-kit/after-rehearsal/check_answer.py ~/r3/samples/2026-10-25`입니다.
