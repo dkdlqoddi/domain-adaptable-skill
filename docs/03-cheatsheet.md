@@ -5,11 +5,12 @@
 2. `claude` 실행 → `/kickoff 4h` (2차 예선 4시간: 탐색 ~0:40 → 계약·뼈대 ~1:20 → 구현 ~3:10 → 마무리 ~4:00. 생략하면 6h)
 3. → `/interview`
 
-## 전체 흐름 (명령 5개)
+## 전체 흐름 (명령 5개 + 선택 `/grill`)
 ```
-/kickoff → /interview → (페르소나에게 묻기 → /interview <답>) ×3~4 → /spec → /delegate S0
-→ [ /delegate Sn → /clear ] × 슬라이스 수 → (마감 60분 전) /wrapup check → (30분 전) /wrapup retro
+/kickoff → /interview → (페르소나에게 묻기 → /interview <답>) ×3~4 → (선택) /grill → /spec → /delegate S0
+→ [ /delegate Sn → /clear ] × 슬라이스 수 → (마감 60분 전) /wrapup check → (30분 전) /wrapup retro → (선택) /grill quiz
 ```
+- `/grill`은 문서의 빈틈을 하나씩 추천 답과 함께 묻고(모르면 "페르소나에게") 기존 문서에 바로 적은 뒤 요약·퀴즈 4문항. 퀴즈는 복습용이라 커밋·푸시를 막지 않는다.
 - `/delegate` 하나가 위임 → 검증·회귀 확인 → 과잉 설계 정리 → 커밋까지 한다.
 - 결정은 명령이 `DECISIONS.md`에 자동 기록한다. 직접 남기려면 "이 결정 기록해 줘".
 
@@ -41,7 +42,7 @@
 슬라이스가 끝나면 `/clear` (상태는 `docs/`에 있다) · 저장소 전체 스캔 금지, diff만 · 큰 구현은 서브에이전트로
 
 ## 마지막 60분
-새 기능 금지 → `/wrapup check` (통합 검증, README 3단계, 잔재 제거, 화면 직접 확인) → `/wrapup retro` → `RETRO.md`를 끝까지 읽기
+새 기능 금지 → `/wrapup check` (통합 검증, README 3단계, 잔재 제거, 화면 직접 확인) → `/wrapup retro` → `RETRO.md`를 끝까지 읽기 → (선택) `/grill quiz`
 
 ## Codex만 있을 때 (`claude` 명령이 없음)
 `cp CLAUDE.md AGENTS.md && mkdir -p .agents && cp -r .claude/skills .agents/skills` → 명령 앞의 `/`를 `$`로 바꿔 부른다(`$kickoff`). 서브에이전트 위임이 안 되면 브리프대로 직접 구현한다.
