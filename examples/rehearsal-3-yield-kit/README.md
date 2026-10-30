@@ -10,11 +10,15 @@
    ```
    R=~/013_hackathon/domain-adaptable-skill
    mkdir -p ~/r3 && cd ~/r3 && git init
-   cp $R/examples/rehearsal-3-yield-kit/task-README.md README.md
-   cp -r $R/examples/rehearsal-3-yield-kit/samples .
-   unzip -n $R/dist/harness.zip
-   git add -A && git commit -qm "과제 초기 상태 + 하네스"
+   cp "$R/examples/rehearsal-3-yield-kit/task-README.md" README.md
+   cp -r "$R/examples/rehearsal-3-yield-kit/samples" .
+   bash "$R/scripts/install.sh" "$PWD"
+   git status --short
+   git add -- README.md samples/ CLAUDE.md .claude/ docs/
+   git diff --cached --stat
+   git commit -qm "과제 초기 상태 + 하네스"
    ```
+   위 초기 커밋은 **새로 만든 리허설 폴더의 명시된 초기 자료만** 포함합니다. 기존 `~/r3`가 있다면 새 폴더 이름을 사용하세요. Codex는 설치에 `--tool codex`를 붙이고 커밋 목록의 `CLAUDE.md .claude/`를 `AGENTS.md .agents/`로 바꿉니다. 이후 슬라이스 커밋은 파일별로 합니다.
 2. 페르소나를 준비합니다. 아래 명령은 `persona.md`를 화면에 띄우지 않고 한글이 깨지지 않게 클립보드로 복사합니다(WSL 기준. macOS는 `pbcopy < $R/examples/rehearsal-3-yield-kit/persona.md`).
    ```
    powershell.exe -NoProfile -Command "Get-Content -Raw -Encoding UTF8 '$(wslpath -w $R/examples/rehearsal-3-yield-kit/persona.md)' | Set-Clipboard"
@@ -26,7 +30,7 @@
    ```
 
 ## 진행 (2시간 압축판, 실전은 `/kickoff 4h`)
-- 준비 3에서 연 Claude에 `/kickoff 2h` → 이후는 각 명령이 마지막 줄에서 알려 주는 대로 갑니다. `docs/03-cheatsheet.md`를 옆에 둡니다.
+- 준비 3에서 연 Claude에 `/kickoff 2h` → 이후는 각 명령의 `다음:` 안내를 따릅니다. `docs/03-cheatsheet.md`의 표를 옆에 둡니다. Codex는 `codex`로 시작해 `$kickoff 2h`, 슬라이스 뒤에는 `/new`를 씁니다.
 - 명령은 5개입니다: `/kickoff` → `/interview` → `/spec` → `/delegate` → `/wrapup`. 인터뷰가 끝나면 `/interview`가 이어서 다지기·요약·퀴즈를 합니다.
 - `/interview`가 만든 질문을 본인 말로 바꿔 페르소나 채팅에 묻고, 받은 답을 통째로 `/interview <답변>`에 붙입니다. 정리하고 다음 질문까지 한 번에 나옵니다.
 - `/delegate`는 위임 → 검증 → 과잉 설계 정리 → 커밋까지 합니다. 슬라이스 하나가 끝나면 `/clear`.

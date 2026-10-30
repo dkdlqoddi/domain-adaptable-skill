@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 하네스 점검: 줄 수 예산, 프런트매터, 참조 파일, 매 세션 항상 로드되는 토큰 근사치.
+# 하네스 점검: 줄 수·프런트매터·참조·추가 토큰 근사치와 설치 회귀 검증.
 # 사용: scripts/check.sh
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; H="$ROOT/harness"; fail=0
@@ -41,8 +41,11 @@ for s in "$H"/.claude/skills/*/SKILL.md; do
 done
 [ $missing -eq 0 ] && echo "  모두 존재" || fail=1
 
-echo "== 매 세션 항상 로드되는 양 (근사) =="
+echo "== Claude에서 하네스가 더하는 양 (근사, 시스템·도구·대화 토큰 제외) =="
 always=$(tok "$H/CLAUDE.md")
 echo "  CLAUDE.md ~${always} tok  +  스킬 설명 ~${always_desc} tok  =  ~$(( always + always_desc )) tok"
+echo "== 설치·패키징 회귀 검증 =="
+for script in "$ROOT"/scripts/*.sh; do bash -n "$script" || fail=1; done
+python3 -B -m unittest discover -s "$ROOT/scripts" -p 'test_*.py' || fail=1
 echo
 [ $fail -eq 0 ] && echo "모두 통과" || { echo "실패 항목이 있습니다"; exit 1; }

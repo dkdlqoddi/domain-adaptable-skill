@@ -13,20 +13,22 @@ argument-hint: "[check | retro] — 없으면 check → retro → 퀴즈"
 새 기능은 이 시점부터 금지다.
 
 ## 흐름
+- 파일을 바꾸기 전에 [../delegate/git-workflow.md](../delegate/git-workflow.md)의 시작 상태를 확인한다.
 - 인자가 없으면 check → retro → 퀴즈를 이어서 한다. check에서 사람에게 물을 것(삭제 후보·화면 확인)은 한 메시지로 묻고, 답을 받은 뒤 retro로 간다.
-- check 뒤에도 검증 실패가 남아 있으면 retro로 넘어가지 않고 멈춘다. 고친 뒤 `/wrapup retro`(retro → 퀴즈).
+- check 뒤에도 검증 실패가 남아 있으면 retro로 넘어가지 않고 멈춘다. 고친 뒤 `/wrapup`을 다시 실행해 검증부터 재개한다.
 - `check`를 주면 check만 한다.
+- `retro`를 단독으로 주면 먼저 check 1번의 통합 검증을 다시 실행한다. 통과했을 때만 retro → 퀴즈로 간다. 같은 호출에서 check를 통과했다면 중복 실행하지 않는다.
 
 ## check
-1. **통합 검증**: `docs/TASKS.md`의 DONE 슬라이스 검증 명령을 모두 실행 → 진입점을 1회 기동해 첫 화면·첫 명령 응답 확인 → 모듈이 여럿이면 경계마다 CONTRACT 샘플로 1회 왕복. 실패하면 재현 먼저(`/delegate` 6번과 같은 순서). 결과를 TASKS 통합 체크포인트에 한 줄.
+1. **통합 검증**: SPEC의 P0와 TASKS를 대조해 미완료 항목을 먼저 명시한다. DONE 슬라이스 검증 명령을 모두 실행 → 진입점을 1회 기동해 첫 화면·첫 명령 응답 확인 → 모듈이 여럿이면 경계마다 CONTRACT 샘플로 1회 왕복. 실패하면 재현 먼저(`/delegate` 6번과 같은 순서). 결과를 TASKS 통합 체크포인트에 한 줄. 테스트 통과와 P0 전체 완료를 구분한다.
 2. **화면이 있으면**: 빌드·린트로 컴파일 에러 확인. 사람에게 첫 화면·핵심 흐름·빈 상태·에러 상태를 **직접** 확인 요청. 세션에 브라우저 자동화 도구가 있으면 같은 시나리오를 돌려 콘솔 에러를 센다. 저장소에 테스트 의존성을 추가하지는 않는다.
 3. **실행 README**: 프로젝트 README에 **설치 → 실행 → 확인** 3단계가 있는지. 없으면 10줄 이내로 만든다. 평가자가 그대로 따라 할 수 있어야 한다.
 4. **저장소 전체 정리**:
    - `git ls-files`로 파일 목록만 보고 미사용 파일·모듈, 구현 하나뿐인 추상화, 설정만 있고 안 쓰는 것, 샘플·데모 코드 잔재를 찾는다.
    - `grep -rn "TODO\|FIXME\|console.log\|print(\|lorem\|placeholder\|shortcut:" --exclude-dir={node_modules,.git,dist} -I`로 표식을 모은다.
    - `git status --short`로 추적되지 않는 잔재(`__pycache__`, 빌드 산출물, 임시 파일)도 본다.
-   - 삭제는 묶어서 한 번 승인 → 지운 것은 결정으로 기록. `shortcut:` 주석은 retro 7절로 넘긴다.
-5. **커밋**: `git add <바꾼 파일> docs/ && git commit -m "wrapup: <한 줄>"`.
+   - 기존 미커밋 작업은 보존한다. 삭제 후보는 묶어서 한 번 승인 → 지운 것은 결정으로 기록 → 코드가 바뀌면 관련 검증 재실행. `shortcut:` 주석은 retro 7절로 넘긴다.
+5. **커밋**: [../delegate/git-workflow.md](../delegate/git-workflow.md)에 따라 검토한 변경 파일만 `"wrapup: <한 줄>"`로 커밋한다. 기존 staged 변경이 있으면 자동 커밋은 보류한다.
 
 ## retro → `docs/RETRO.md`
 읽기: `docs/SPEC.md`, `docs/DECISIONS.md`, `docs/TASKS.md`, `docs/GLOSSARY.md`, (있으면) `docs/CONTRACT.md`의 모듈 표. 코드는 진입점 1개 외에 열지 않는다.
@@ -44,12 +46,12 @@ argument-hint: "[check | retro] — 없으면 check → retro → 퀴즈"
 ## 8. 시간이 더 있다면 (우선순위 3개)
 ## 9. 예상 질문 10개와 한 줄 답 (구조·대안·트레이드오프·검증 방법·토큰을 아낀 방법)
 ```
-끝나면 `git add docs/RETRO.md && git commit -m "retro"`.
+끝나면 같은 Git 절차로 `docs/RETRO.md`와 이번 검증으로 바뀐 TASKS만 검토해 `"retro"`로 커밋한다. 보류 시 사유를 알린다.
 
-## 퀴즈 (retro 커밋 뒤)
+## 퀴즈 (retro 작성 뒤, 커밋 보류와 무관)
 [../interview/grill.md](../interview/grill.md)의 읽기 → 요약 → 퀴즈만 한다. 사람이 "그만"이라고 하면 건너뛴다. 제출·푸시와는 무관하다.
 
 ## 출력 (메시지마다 15줄 이내)
 - check: 검증·화면·README·정리 결과를 한 줄씩. 삭제 후보가 있으면 묶어서 한 번 묻는다.
-- retro: `RETRO.md 커밋: <해시>` 한 줄 → 이어서 퀴즈.
+- retro: `RETRO.md 커밋: <해시 또는 보류 사유>` 한 줄 → 이어서 퀴즈.
 - 끝(채점 뒤) 마지막 줄: "RETRO.md를 처음부터 끝까지 읽어보세요. 틀린 문항과 설명 못 하는 항목은 지금 그 코드를 열어 확인하세요."

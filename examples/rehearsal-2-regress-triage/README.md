@@ -76,7 +76,7 @@ F-4(열린 질문이 두 곳)는 `/spec`이 SPEC 7절을 갱신해서 문제가 
 
 ## 직접 리허설하기 (사람이 하는 3차)
 1. 빈 폴더에 `task/README.md`의 맨 위 다섯 줄만 `README.md`로 두고, `python3 kit/make_samples.py samples`로 샘플 로그를 만듭니다.
-2. `git init` → `unzip -n harness.zip` → `claude` → `/kickoff`.
+2. `git init` → 저장소의 `scripts/install.sh <새 과제 폴더>` → 초기 파일과 설치물을 검토해 첫 커밋 → `claude` → `/kickoff`. ZIP을 반입할 때는 현재 [설치 안내](../../README.md#준비와-설치-터미널)대로 임시 폴더에 풉니다.
 3. 다른 AI 채팅(Gemini 등)의 첫 메시지로 `kit/persona.md`를 붙여 넣으면 담당자 역할을 합니다. **시트는 읽지 마세요.** 숨은 사실이 들어 있습니다.
 4. 끝나면 이 폴더의 `docs/`, `transcripts/`와 비교해 보세요.
 
