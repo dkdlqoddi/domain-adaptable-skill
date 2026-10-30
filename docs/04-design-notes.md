@@ -51,7 +51,7 @@
 
 ## 5. 확장하는 법
 - **스킬 추가.** `harness/.claude/skills/<name>/SKILL.md`. `name`은 폴더명과 같게, `disable-model-invocation: true`, 120줄 이하, 참고 파일은 "언제 열지"와 함께 링크. `scripts/check.sh`로 확인.
-- **규칙 추가.** 루트 CLAUDE.md는 80줄 한도. 넘으면 특정 폴더에서만 필요한 규칙은 `<모듈>/CLAUDE.md`로, 특정 파일 종류에서만 필요한 규칙은 `.claude/rules/<topic>.md`에 `paths:` 프런트매터로.
+- **규칙 추가.** 루트 CLAUDE.md는 80줄 한도. 넘으면 특정 단계에서만 필요한 규칙은 그 스킬 본문으로, 모듈 작업에만 필요한 규칙은 `spec/module-claude.template.md`로 옮긴다(모듈이 2개 이상일 때 `/spec`이 `<모듈>/CLAUDE.md`로 만든다). 설치기는 `CLAUDE.md`와 `.claude/skills/`만 설치하므로 `.claude/rules/`처럼 다른 곳에 둔 파일은 과제 프로젝트에 들어가지 않는다.
 - **도메인 사전 준비.** `templates/docs/domain/primer.md` 추가. 설치·패키징에 자동 포함된다.
 - **검증.** `scripts/check.sh`는 정적 검사와 임시 프로젝트의 설치·변환·ZIP 회귀 검증을 수행한다. 그 뒤 빈 과제에서 선택한 CLI로 전체 흐름을 리허설한다. 바이트 기반 토큰 추정은 시스템·도구·대화 비용을 포함하지 않는다.
 
