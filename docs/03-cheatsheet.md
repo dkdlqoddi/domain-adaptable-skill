@@ -4,25 +4,31 @@
 
 | 단계 | 할 일 |
 |---|---|
-| 미리 | 저장소에서 `scripts/check.sh` → `scripts/pack.sh`. Bash·Python 3.8+·Git, ZIP용 zip/unzip 준비 |
-| 로컬 설치 | `scripts/install.sh <과제 경로>` |
-| ZIP 설치 | 과제 루트에서 아래 3줄. ZIP은 임시 폴더에 풀기 |
-| 도구 선택 | 기본 Claude. 설치 명령에 `--tool codex` 또는 `--tool claude-commands` 추가 가능 |
-| 충돌 | 기본은 아무것도 쓰지 않고 중단. `--force`는 지침·스킬을 백업 후 교체. 기존 docs는 항상 보존 |
-| Git | 새 프로젝트만 `git init`. 초기 파일·설치 파일을 개별 검토해 첫 커밋. 기존 staged 작업은 별도로 처리 |
+| 미리 (이 PC) | 저장소에서 `scripts/check.sh` → `scripts/pack.sh`. `dist/harness.zip`과 이 치트시트 챙기기 |
+| 환경 확인 | `claude --version`(또는 `codex --version`)·`python3 --version`·`git --version`, 마감 시각 |
+| 설치·첫 커밋 | `harness.zip`을 과제 루트에 올리고 아래 블록. Codex는 주석대로 두 곳, 구버전 Claude는 설치 줄에 `--tool claude-commands` |
+| 충돌 | 기본은 아무것도 쓰지 않고 중단(zip은 남음). `--force`는 지침·스킬을 백업 후 교체. 기존 docs는 항상 보존 |
+| 리허설 (이 PC) | `scripts/install.sh <과제 경로>` 뒤 블록의 `git` 줄부터 |
 | 시작 | 과제 루트에서 `claude` 또는 `codex` |
 
 ```bash
 HARNESS_KIT=$(mktemp -d)
-unzip harness.zip -d "$HARNESS_KIT"
-bash "$HARNESS_KIT/scripts/install.sh" "$PWD"
+unzip -q harness.zip -d "$HARNESS_KIT" || python3 -m zipfile -e harness.zip "$HARNESS_KIT"
+bash "$HARNESS_KIT/scripts/install.sh" "$PWD" && rm harness.zip   # Codex: "$PWD" --tool codex
+git rev-parse --git-dir >/dev/null 2>&1 || git init
+git config user.email >/dev/null || git config user.email "me@example.com"
+git config user.name  >/dev/null || git config user.name "이름"
+git add -- README.md CLAUDE.md .claude/ docs/    # + 과제 파일. Codex: AGENTS.md .agents/
+git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 ```
+
+`git add`에는 실제 있는 경로만 적는다(하나라도 없으면 실패). 이미 쓰던 저장소면 먼저 `git status --short`로 섞이면 안 되는 작업을 확인한다.
 
 ## 진행 — AI 입력창에서 (4시간 기준)
 
 | 시간·단계 | Claude | Codex | 할 일·결과 |
 |---|---|---|---|
-| 시작 | `/kickoff README.md 4h` | `$kickoff README.md 4h` | 과제 재정의, 모르는 것, 시간표. 시간 생략 시 6h |
+| 시작 | `/kickoff README.md 13:00` | `$kickoff README.md 13:00` | 마감 시각(또는 남은 시간 `3h45m`, 생략 시 6h). 과제 재정의, 모르는 것, 시간표 |
 | 탐색 ~0:40 | `/interview` | `$interview` | 질문을 본인 말로 바꿔 페르소나에게 묻기 |
 | 답 정리 반복 | `/interview <답>` | `$interview <답>` | 답을 붙이면 기록 + 다음 질문. 중요한 미지수가 있으면 추가 회차 |
 | 다지기 | 자동 진행 | 자동 진행 | 빈틈 질문 → 요약 → 퀴즈. `그만`이면 다지기 종료, 퀴즈는 제출과 무관 |
@@ -54,7 +60,7 @@ bash "$HARNESS_KIT/scripts/install.sh" "$PWD"
 | 기존 변경 | 시작 상태와 비교해 보존. 기존 staged가 있으면 자동 스테이징·커밋 보류, 이유·경로 확인 |
 | 커밋 | 검토한 개별 파일만. 다른 브리프·캐시·`.harness-backups/` 제외. 범위 밖 파일 임의 복구 금지 |
 | 위임 도구 없음 | 같은 브리프·검증 규칙으로 루트에서 순차 구현 |
-| 마무리 실패 | 고친 뒤 `/wrapup` 재실행. `/wrapup retro` 단독 호출도 통합 검증부터 |
+| 마무리 실패 | 시간이 있으면 고친 뒤 `/wrapup` 재실행. 없으면 '실패를 RETRO에 적고 진행'을 고른다 |
 | 검증만 / 복습만 | `/wrapup check` / `/interview quiz` |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성은 유지 |
 

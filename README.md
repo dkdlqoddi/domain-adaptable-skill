@@ -57,28 +57,33 @@ Claude용으로 설치하면 과제 프로젝트는 이렇게 됩니다. Codex�
 
 ## 준비와 설치 (터미널)
 
-설치는 **Bash와 Python 3.8 이상**, 패키징은 `zip`, ZIP 반입은 `unzip`이 필요합니다. 작업에는 Git과 선택한 AI CLI가 필요하며, 커밋할 Git 사용자 이름·이메일도 설정되어 있어야 합니다. 아래 `/path/to/task`는 실제 과제 프로젝트 경로로 바꿉니다.
+설치는 **Bash와 Python 3.8 이상**이 필요합니다(`unzip`이 없으면 Python으로 풉니다). 패키징은 `zip`, 작업에는 Git과 선택한 AI CLI가 필요합니다.
 
 | 순서 | 어디서 | 실행·확인 | 완료 기준 |
 |---|---|---|---|
 | 1. 사전 점검 | 이 저장소 루트 | `scripts/check.sh` | 정적 검사와 설치 회귀 테스트 통과 |
 | 2. 반입 준비 | 이 저장소 루트 | `scripts/pack.sh` | `dist/harness.zip` 생성, 치트시트 준비 |
-| 3. 환경 확인 | 과제 터미널 | `claude --version` 또는 `codex --version`, `python3 --version`, `git --version` | 도구·제한 시간·반입·제출 방식 확인 |
-| 4. 로컬 설치 | 이 저장소 루트 | `scripts/install.sh /path/to/task` | 설치 완료. 도구 선택은 다음 표 참고 |
-| 4. ZIP 설치 | 과제 프로젝트 루트 | 아래 ZIP 설치 명령 3줄 실행 | 임시 폴더의 설치기로 동일하게 설치 |
-| 5. Git 준비 | 과제 프로젝트 루트 | 새 프로젝트만 `git init`. `git status --short`로 초기 파일·설치 파일 검토 | 기존 저장소·미커밋 작업을 보존 |
-| 6. 초기 커밋 | 과제 프로젝트 루트 | 포함할 파일만 `git add -- <파일 경로들>` → `git diff --cached` → `git commit -m "init: 과제와 하네스"` | 첫 커밋 존재, 시작할 때 인덱스가 비어 있음. 기존 staged 작업은 먼저 별도로 처리 |
-| 7. AI 시작 | 과제 프로젝트 루트 | `claude` 또는 `codex` | 아래 작업 표의 kickoff 실행 |
+| 3. 환경 확인 | 과제 터미널 | `claude --version` 또는 `codex --version`, `python3 --version`, `git --version` | 도구·마감 시각·반입·제출 방식 확인 |
+| 4. 설치·첫 커밋 | 과제 프로젝트 루트 | `harness.zip`을 올리고 아래 블록 실행 | 설치 완료, `harness.zip` 삭제, 첫 커밋 존재 |
+| 5. AI 시작 | 과제 프로젝트 루트 | `claude` 또는 `codex` | 아래 작업 표의 kickoff 실행 |
 
 ZIP은 **설치 키트**입니다. 프로젝트에 직접 덮어 풀지 않고 임시 폴더에 풉니다. 이전 ZIP과 내부 구조가 달라졌으므로 새로 패키징하세요.
 
 ```bash
 HARNESS_KIT=$(mktemp -d)
-unzip harness.zip -d "$HARNESS_KIT"
-bash "$HARNESS_KIT/scripts/install.sh" "$PWD"
+unzip -q harness.zip -d "$HARNESS_KIT" || python3 -m zipfile -e harness.zip "$HARNESS_KIT"
+bash "$HARNESS_KIT/scripts/install.sh" "$PWD" && rm harness.zip   # Codex: "$PWD" --tool codex
+git rev-parse --git-dir >/dev/null 2>&1 || git init
+git config user.email >/dev/null || git config user.email "me@example.com"
+git config user.name  >/dev/null || git config user.name "이름"
+git add -- README.md CLAUDE.md .claude/ docs/    # + 과제 파일. Codex: AGENTS.md .agents/
+git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 ```
 
-마지막 줄에 `--tool codex` 또는 `--tool claude-commands`를 붙일 수 있습니다. 로컬·ZIP 설치 모두 같은 옵션과 충돌 처리를 사용합니다.
+- git 사용자 설정이 없는 새 폴더에서 이 블록을 그대로 실행해 첫 커밋까지 확인했습니다. 이미 Git 저장소면 `git init`을, 사용자 설정이 있으면 `git config`를 건너뜁니다.
+- `git add`에는 실제 있는 경로만 적습니다. 하나라도 없으면 아무것도 추가되지 않습니다. 이미 쓰던 저장소라면 먼저 `git status --short`로 섞이면 안 되는 작업이 없는지 봅니다.
+- 설치 줄의 `"$PWD"` 뒤에 `--tool codex` 또는 `--tool claude-commands`를 붙일 수 있습니다. 충돌로 멈추면 `harness.zip`은 남으니 아래 표대로 처리하고 설치 줄부터 다시 실행합니다.
+- 리허설처럼 이 PC의 과제 폴더라면 ZIP 없이 `scripts/install.sh /path/to/task`로 설치하고 블록의 `git` 줄부터 실행합니다.
 
 | 사용할 도구 | 설치 옵션 | 설치되는 지침·스킬 | 호출 / 컨텍스트 비우기 |
 |---|---|---|---|
@@ -98,11 +103,11 @@ Codex 설치기는 명령 표기·템플릿 경로·모듈 지침 이름을 변�
 
 ## 전체 사용 순서 (AI 입력창)
 
-명령은 터미널 셸이 아니라 **Claude/Codex 대화 입력창**에 입력합니다. 시간은 4시간 기준이며 `/kickoff 2h`처럼 바꿀 수 있습니다. 시간을 생략하면 6시간입니다.
+명령은 터미널 셸이 아니라 **Claude/Codex 대화 입력창**에 입력합니다. 아래 시간은 4시간 기준입니다. `/kickoff`에 **마감 시각**(한국 시각)을 주면 설치에 쓴 시간을 뺀 남은 시간으로 시간표를 짭니다. `3h45m`처럼 남은 시간을 줘도 되고, 생략하면 6시간입니다.
 
 | 순서·시간 | Claude 입력 | Codex 입력 | 사람이 할 일 | 결과·다음 단계 |
 |---|---|---|---|---|
-| 1. 시작 | `/kickoff README.md 4h` | `$kickoff README.md 4h` | 실제 지시문 경로·총 시간 전달 | SPEC 초안, 열린 질문, TASKS 시간표 |
+| 1. 시작 | `/kickoff README.md 13:00` | `$kickoff README.md 13:00` | 지시문 경로와 마감 시각(예: 13:00) 전달 | SPEC 초안, 열린 질문, TASKS 시간표 |
 | 2. 탐색, ~0:40 | `/interview` | `$interview` | 나온 질문을 본인 말로 바꿔 페르소나에게 묻기 | 질문 3~5개 |
 | 3. 답 정리, 반복 | `/interview <답변>` | `$interview <답변>` | 페르소나 답변을 붙여 넣기 | domain·GLOSSARY·SPEC 갱신 + 다음 질문 |
 | 4. 다지기·복습 | 인터뷰 종료 뒤 자동 진행 | 동일 | 빈틈 질문에 답하고 퀴즈 풀기. `그만`으로 다지기 종료, 탐색을 끝내려면 다음 계약 명령으로 이동 | 문서의 빈틈 보완. 퀴즈 결과는 저장·제출과 무관 |
@@ -125,8 +130,8 @@ Codex 설치기는 명령 표기·템플릿 경로·모듈 지침 이름을 변�
 | 기존 staged 변경 | 표시된 경로를 확인해 기존 작업을 별도로 처리 | 동일 | 구현·검증은 가능, 자동 스테이징·커밋은 보류. 기존 변경을 되돌리지 않음 |
 | 새 범위 밖 변경 | 경로·출처를 확인 | 동일 | 기존 작업을 보존하며 임의 삭제·복구하지 않음 |
 | 마무리 검증만 | `/wrapup check` | `$wrapup check` | 검증·화면·README·정리까지만 |
-| 마무리 검증 실패 후 복구 | 수정 후 `/wrapup` 재실행 | 수정 후 `$wrapup` 재실행 | 검증부터 다시 통과한 뒤 RETRO·퀴즈 |
-| 복기·퀴즈만 요청 | `/wrapup retro` | `$wrapup retro` | 단독 호출도 통합 검증을 먼저 재실행. 실패하면 복기로 넘어가지 않음 |
+| 마무리 검증 실패 | 시간이 있으면 고친 뒤 `/wrapup` 재실행 | 고친 뒤 `$wrapup` 재실행 | `/wrapup`이 고칠지, 실패를 RETRO 4절에 적고 진행할지 묻는다. 마감이 가까우면 진행 |
+| 복기·퀴즈만 요청 | `/wrapup retro` | `$wrapup retro` | 단독 호출도 통합 검증을 먼저 재실행. 실패가 남으면 위와 같이 묻는다 |
 | 복습만 | `/interview quiz` | `$interview quiz` | 요약 + 4문항 퀴즈. 파일을 바꾸거나 제출을 막지 않음 |
 
 커밋은 검토한 **개별 파일 경로**만 추가합니다. 기존 staged 변경, 다른 슬라이스의 브리프, 테스트 캐시, 설치 백업을 섞지 않습니다. 공통 절차는 [git-workflow.md](harness/.claude/skills/delegate/git-workflow.md)에 있습니다.
@@ -166,7 +171,7 @@ ponytail은 "게으른 시니어 개발자" 규칙입니다. 쓰기 전에 사�
 
 **명령이 안 보이면?** 설치기에 `--tool claude-commands`를 붙여 다시 실행하고 Claude를 재시작하세요. 보조 파일과 템플릿 경로까지 보정하므로 SKILL.md만 수동 복사하지 않습니다.
 
-**Claude Code 대신 Codex만 있으면?** 설치기에 `--tool codex`를 붙이고 `codex`를 시작하세요. `$kickoff README.md 4h`부터 위 표대로 진행합니다. 기존 `AGENTS.md`는 자동 덮어쓰지 않습니다. 현재 변환기의 자동 검증과 이전 버전의 CLI 리허설은 구분하며, 실제 위임 도구가 없으면 순차 구현합니다.
+**Claude Code 대신 Codex만 있으면?** 설치기에 `--tool codex`를 붙이고 `codex`를 시작하세요. `$kickoff README.md <마감 시각>`부터 위 표대로 진행합니다. 기존 `AGENTS.md`는 자동 덮어쓰지 않습니다. 현재 변환기의 자동 검증과 이전 버전의 CLI 리허설은 구분하며, 실제 위임 도구가 없으면 순차 구현합니다.
 
 **왜 모듈을 많이 안 나누나요?** 나누는 것 자체가 과잉 설계일 수 있습니다. 기본은 1개이고, 검증 방법이 다르거나 병렬로 만들 가치가 있을 때만 나눕니다. 모듈이 1개면 계약(입출력 샘플)은 `SPEC.md` 8절에 두고 `CONTRACT.md`와 모듈 지침은 만들지 않습니다.
 

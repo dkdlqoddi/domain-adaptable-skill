@@ -163,5 +163,11 @@
 | 범위 밖 기존 변경을 되돌림, staged 사용자 파일·캐시가 커밋에 섞임 | 시작 상태 기록, 기존 변경 보존, 기존 staged면 자동 커밋 보류. 파일별 diff·커밋을 공통 Git 절차로 분리 |
 | 순차 슬라이스까지 쓰기 범위 중복 금지 | 동시에 실행할 슬라이스만 범위·의존성 검사 |
 | 마무리 실패 후 retro가 재검증을 우회 | 고친 뒤 wrapup 재실행. retro 단독 호출도 통합 검증부터 |
+| `/kickoff`가 실행 시각 + 시간으로 시간표를 짜서 설치에 쓴 시간만큼 마감을 넘김. 컨테이너 시계가 UTC일 수 있음 | 마감 시각 인자(`/kickoff README.md 13:00`). 시각은 `TZ=KST-9 date`로 통일(kickoff·interview·TASKS 머리말) |
+| 새 컨테이너에 Git 사용자 설정이 없어 첫 커밋 실패, `harness.zip`이 과제 루트에 남음, `unzip`이 없으면 막힘, 첫 커밋의 `git diff --cached`가 1,069줄 | README·치트시트의 블록 하나: Python 대체 해제, 설치 뒤 `rm harness.zip`, 설정이 없을 때만 `git config`, `--stat` |
+| 구버전 명령 파일의 `../skills/...` 링크를 모델이 프로젝트 루트 기준으로 열어 못 찾음(haiku로 확인) | 링크를 루트 기준 `.claude/skills/...`로 바꾸고 테스트도 루트 기준으로 확인 |
+| 못 고친 검증 실패 하나가 RETRO·퀴즈까지 막음 | 실패가 남으면 고칠지, RETRO 4절에 실패로 적고 진행할지 한 번 묻는다 |
+| 설치기가 깐 docs 위에서 `/kickoff`의 `cp -rn`이 coreutils 9.2~9.4에서 오류로 끝남 | `2>/dev/null \|\| true` |
+| 커밋 때 같은 diff를 다시 읽고, 시작 상태 명령 3개가 서로 겹침 | 커밋 때는 `--name-status`·`--check`만. 시작 상태는 `git status --short` 한 번 |
 
 설치·재설치·충돌·백업·도구별 참조 경로·ZIP 동등성은 `scripts/test_install.py`로 검증한다. 이 검증은 실제 Claude/Codex가 지침을 따르는지 확인하는 대화형 리허설을 대신하지 않는다.

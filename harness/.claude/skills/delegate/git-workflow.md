@@ -4,7 +4,7 @@
 
 ## 시작 상태
 1. 프로젝트 루트에서 `git rev-parse --show-toplevel`과 `git rev-parse --verify HEAD`로 저장소·첫 커밋을 확인한다. 없으면 초기화·초기 커밋을 먼저 안내한다. 기존 저장소를 재초기화하거나 일괄 커밋하지 않는다.
-2. `git status --short --untracked-files=all`, `git diff --name-status`, `git diff --cached --name-status`로 기존 변경·새 파일·스테이징을 구분한다. `/delegate`는 그 파일 목록을 브리프의 시작 상태에 기록한다.
+2. `git status --short --untracked-files=all` 한 번으로 기존 변경·새 파일·스테이징을 구분한다(첫 칸이 스테이징, 둘째 칸이 작업 트리, `??`는 새 파일). `/delegate`는 그 파일 목록을 브리프의 시작 상태에 기록한다.
 3. 기존 변경은 보존한다. 구현 범위와 겹쳐 작업 귀속이 불명확하면 함께 수정·커밋할지 하나만 확인한다. 앞선 인터뷰에서 만든 문서처럼 이 흐름의 산출물임이 확인된 변경은 `/spec`의 포함 목록에 명시한다.
 4. 기존 staged 변경이 있으면 구현·검증은 진행할 수 있지만 **자동 스테이징·커밋은 보류**한다. `reset`, `restore`, `clean`, stash로 임의 정리하지 않는다. 끝에 해당 경로와 보류 사유를 알린다.
 
@@ -17,6 +17,6 @@
 ## 커밋
 1. 이번 커밋에 넣을 **파일 경로 목록**을 확정한다. 코드·테스트와 해당 브리프·TASKS·결정 등 실제 관련 문서만 포함한다. 디렉터리 전체, `git add .`, `git add -A`, `git add docs/`는 사용하지 않는다.
 2. 시작 시와 현재 모두 인덱스가 비어 있는지 확인한다: `git diff --cached --quiet`. 기존 staged 변경이 있거나 새 외부 변경이 끼어들었으면 스테이징·커밋을 보류한다.
-3. `git add -- <검토한 파일 경로들>` → `git diff --cached --name-status`와 `git diff --cached`로 파일 목록·내용이 승인된 범위와 같은지 확인 → `git diff --cached --check`.
+3. `git add -- <검토한 파일 경로들>` → `git diff --cached --name-status`로 파일 목록이 승인된 범위와 같은지 확인 → `git diff --cached --check`. 내용 검토는 위 '검토와 범위 확인'에서 끝냈으니 `git diff --cached` 전체를 다시 읽지 않는다.
 4. 범위가 일치할 때만 `git commit -m "<단계 또는 슬라이스 ID>: <한 줄>"`. 변경이 없으면 커밋을 만들지 않는다. 목록이 다르면 보류하고, 다른 변경을 임의로 언스테이징하지 않는다.
 5. 검증 통과와 커밋 성공을 구분한다. 커밋을 보류했거나 실패했다면 `커밋: 보류 — <사유·파일>`로 알리고 TASKS에 남긴다. 검증이 실패한 슬라이스는 DONE으로 표시하지 않는다.

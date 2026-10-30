@@ -11,15 +11,14 @@ cp -r "$ROOT/harness" "$STAGE/payload/harness"
 cp "$ROOT/scripts/install.sh" "$ROOT/scripts/install.py" "$STAGE/payload/scripts/"
 ( cd "$STAGE/payload" && zip -qr "$STAGE/harness.zip" . )
 zip -qz "$STAGE/harness.zip" <<'EOF'
-하네스 설치 키트 — Bash, Python 3.8+, unzip 필요
+하네스 설치 키트 — Bash, Python 3.8+ 필요 (unzip이 없으면 python3 -m zipfile -e)
 과제 프로젝트 루트에서 실행 (프로젝트에 직접 압축을 풀지 않음):
   HARNESS_KIT=$(mktemp -d)
-  unzip harness.zip -d "$HARNESS_KIT"
-  bash "$HARNESS_KIT/scripts/install.sh" "$PWD"
-Codex: 마지막 명령 뒤에 --tool codex
-구버전 Claude: 마지막 명령 뒤에 --tool claude-commands
-충돌 시 쓰기 전에 중단. --force는 백업 후 교체. docs/는 항상 보존.
-Git 초기 상태를 확인한 뒤 claude → /kickoff README.md 4h (Codex: $kickoff).
+  unzip -q harness.zip -d "$HARNESS_KIT" || python3 -m zipfile -e harness.zip "$HARNESS_KIT"
+  bash "$HARNESS_KIT/scripts/install.sh" "$PWD" && rm harness.zip
+Codex: 설치 줄의 "$PWD" 뒤에 --tool codex / 구버전 Claude: --tool claude-commands
+충돌 시 쓰기 전에 중단(zip은 남음). --force는 백업 후 교체. docs/는 항상 보존.
+그다음 치트시트 준비 블록대로 Git 설정·첫 커밋 → claude → /kickoff README.md <마감 시각> (Codex: $kickoff).
 EOF
 mv "$STAGE/harness.zip" "$OUT/harness.zip"
 echo "생성: $OUT/harness.zip ($(du -h "$OUT/harness.zip" | cut -f1))"

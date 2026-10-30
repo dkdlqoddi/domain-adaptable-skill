@@ -33,15 +33,14 @@ def codex_text(text):
 
 
 def command_text(text, source):
-    """commands/의 상대 링크가 보조 파일이 있는 skills/를 가리키게 한다."""
+    """commands/ 본문의 링크는 모델이 프로젝트 루트 기준으로 열므로 루트 기준 skills/ 경로로 바꾼다."""
     def relocate(match):
-        link = match.group(1)
+        label, link = match.groups()
         if "://" in link or link.startswith(("/", "#")):
             return match.group(0)
-        target = (source.parent / link).resolve()
-        relative = os.path.relpath(target, SOURCE / ".claude/commands")
-        return "](" + Path(relative).as_posix() + ")"
-    return re.sub(r"\]\(([^)]+)\)", relocate, text).replace(
+        target = Path(os.path.relpath((source.parent / link).resolve(), SOURCE)).as_posix()
+        return "[" + (target if label == link else label) + "](" + target + ")"
+    return re.sub(r"\[([^\]]*)\]\(([^)]+)\)", relocate, text).replace(
         "${CLAUDE_SKILL_DIR}", ".claude/skills/" + source.parent.name)
 
 
@@ -146,8 +145,8 @@ def install(destination, tool, force):
     print("완료: 설치 {}개, 동일 파일·기존 docs 보존 {}개 → {}".format(len(pending), skipped, destination))
     if tool != "codex" and (destination / "CLAUDE.md").exists() and (destination / ".claude/CLAUDE.md").exists():
         print("확인: CLAUDE.md와 .claude/CLAUDE.md의 규칙이 충돌하지 않는지 확인하세요.")
-    command = "codex → $kickoff README.md 4h" if tool == "codex" else "claude → /kickoff README.md 4h"
-    print("다음: 과제 루트에서 Git 초기 상태를 확인하고 " + command)
+    command = "codex → $kickoff" if tool == "codex" else "claude → /kickoff"
+    print("다음: 첫 커밋 뒤 " + command + " README.md <마감 시각, 예: 13:00>")
     return 0
 
 

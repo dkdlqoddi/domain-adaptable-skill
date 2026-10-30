@@ -35,11 +35,11 @@ class InstallationTest(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(data, encoding="utf-8")
 
-    def assert_links_exist(self, directory):
+    def assert_links_exist(self, directory, root=None):
         for path in directory.rglob("*.md"):
             for link in re.findall(r"\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
                 if not link.startswith(("http:", "https:", "#")):
-                    self.assertTrue((path.parent / link).is_file(), (path, link))
+                    self.assertTrue(((root or path.parent) / link).is_file(), (path, link))
 
     def test_fresh_and_repeat_are_identical(self):
         self.install()
@@ -135,7 +135,9 @@ class InstallationTest(unittest.TestCase):
         self.install("--tool", "claude-commands")
         commands = self.project / ".claude/commands"
         self.assertEqual(len(list(commands.glob("*.md"))), 5)
-        self.assert_links_exist(commands)
+        # 명령 본문에는 파일 위치 정보가 없어 모델이 링크를 프로젝트 루트 기준으로 연다.
+        self.assert_links_exist(commands, root=self.project)
+        self.assertNotIn("](../", "".join(p.read_text() for p in commands.glob("*.md")))
         kickoff = (commands / "kickoff.md").read_text()
         self.assertNotIn("${CLAUDE_SKILL_DIR}", kickoff)
         self.assertIn(".claude/skills/kickoff/templates/docs/.", kickoff)
