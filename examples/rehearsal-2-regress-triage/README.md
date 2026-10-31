@@ -1,5 +1,7 @@
 # 리허설 2 — 모의 과제 "회귀 결과 정리 도우미" (반도체 검증, CLI)
 
+> 이전 Claude 버전의 리허설 기록입니다. 대화·산출물·자동 실행 스크립트는 당시 형식으로 보존합니다. 현재 Codex 설치·호출 방법은 저장소 루트 README와 리허설 3 키트를 따릅니다.
+
 > 이 기록은 명령이 9개였던 이전 하네스(2026-10-26까지)로 만들었습니다. 지금은 5개로 합쳤습니다: `/interview`·digest → `/interview`, `/spec`·`/workspace` → `/spec`, `/delegate`·`/verify`·`/lean` → `/delegate`, `/decide` → 자동 기록. 자세한 내용은 `docs/04-design-notes.md` 8절.
 
 1차 리허설(`../rehearsal-interview-coach/`)에서 해 보지 못한 것을 채우려고 돌린 두 번째 리허설입니다. 실제 해커톤 제출물이 아닙니다.

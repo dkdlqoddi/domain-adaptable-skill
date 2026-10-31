@@ -1,11 +1,11 @@
 ---
 name: spec
 description: 인터뷰로 모은 docs/domain 지식을 근거로 SPEC.md(P0/P1/P2, 비목표, 제약, 입출력 샘플)를 확정하고, 모듈을 정하고, TASKS.md를 검증 명령이 붙은 슬라이스로 채운다. 인터뷰가 끝나면 실행하고, 새 요구가 생기면 다시 실행.
-disable-model-invocation: true
-argument-hint: "(인자 없음)"
 ---
 
-# /spec — 계약 먼저, 그다음 작업판
+# $spec — 계약 먼저, 그다음 작업판
+
+사용: `$spec` — 인터뷰를 마쳤거나 구현 중 새 요구가 생겼을 때 실행한다.
 
 ## 왜
 합칠 때 터지는 이유는 하나다: 인터페이스가 안 맞아서. 입출력을 샘플 값으로 먼저 고정하면 이후 구현은 블록처럼 맞물린다.
@@ -28,7 +28,7 @@ argument-hint: "(인자 없음)"
 ## 2. 모듈과 계약
 1. 모듈은 기본 1개. 나누는 이유는 둘뿐: 검증 방법이 다르다, 병렬로 만들 가치가 있다. 4개를 넘기지 않는다.
 2. **모듈이 1개면** `docs/SPEC.md` 8절(입출력 샘플)에 실행 명령, 입력, 기대 출력, 에러 경로 하나를 **구체적인 값**으로 적고, 같은 샘플을 `fixtures/`에 파일로 둔다.
-3. **모듈이 2개 이상이면** [contract.template.md](contract.template.md)로 `docs/CONTRACT.md`를 만들어 모듈 사이에 오가는 것을 샘플 값으로 적는다(형식 예시: [contract-examples.md](contract-examples.md)). 모듈마다 `<모듈>/CLAUDE.md`를 [module-claude.template.md](module-claude.template.md)로 만든다(40줄 이하). 폴더 이름은 GLOSSARY 용어로.
+3. **모듈이 2개 이상이면** [contract.template.md](contract.template.md)로 `docs/CONTRACT.md`를 만들어 모듈 사이에 오가는 것을 샘플 값으로 적는다(형식 예시: [contract-examples.md](contract-examples.md)). 모듈마다 `<모듈>/AGENTS.md`를 [module-agents.template.md](module-agents.template.md)로 만든다(40줄 이하). 폴더 이름은 GLOSSARY 용어로.
 
 ## 3. 슬라이스 (`docs/TASKS.md`)
 - **S0 = 걸어다니는 뼈대.** 실행되고 입력 하나가 끝까지 지나가 출력까지 간다(내용은 하드코딩이어도 됨). 항상 첫 번째.
@@ -37,7 +37,7 @@ argument-hint: "(인자 없음)"
 - 끝내기 전 확인: **동시에 실행할 슬라이스끼리만** 쓰기 범위가 겹치지 않고 의존성이 없어야 한다. S0 뒤 S1처럼 순차 작업은 같은 파일을 확장해도 된다. 모든 검증 명령이 실행은 된다(미구현이라 실패하는 것은 괜찮다).
 
 ## 4. 커밋
-앞선 인터뷰 산출물과 이번에 바꾼 문서·픽스처·모듈 CLAUDE.md의 **파일 목록**을 검토한다. [../delegate/git-workflow.md](../delegate/git-workflow.md)에 따라 `"spec: <P0 요약 한 줄>"`로 커밋한다. 기존 staged 변경이 있으면 자동 커밋은 보류하고 이유를 알린다.
+앞선 인터뷰 산출물과 이번에 바꾼 문서·픽스처·모듈 AGENTS.md의 **파일 목록**을 검토한다. [../delegate/git-workflow.md](../delegate/git-workflow.md)에 따라 `"spec: <P0 요약 한 줄>"`로 커밋한다. 기존 staged 변경이 있으면 자동 커밋은 보류하고 이유를 알린다.
 
 ## 출력 (15줄 이내)
-P0 목록(ID와 기능만 한 줄씩. 완료 기준은 SPEC에 있으니 화면에 쓰지 않는다) → `비목표: ...` 한 줄 → 슬라이스 목록(ID·한 줄씩) → `가정 N개(SPEC 5·7절)` 한 줄 → 마지막 줄: "다음: `/delegate S0`"(다시 실행했으면 새 슬라이스).
+P0 목록(ID와 기능만 한 줄씩. 완료 기준은 SPEC에 있으니 화면에 쓰지 않는다) → `비목표: ...` 한 줄 → 슬라이스 목록(ID·한 줄씩) → `가정 N개(SPEC 5·7절)` 한 줄 → 마지막 줄: "다음: `$delegate S0`"(다시 실행했으면 새 슬라이스).

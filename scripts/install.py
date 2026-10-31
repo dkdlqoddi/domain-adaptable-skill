@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""표준 라이브러리만 사용하는 하네스 설치·호환 형식 변환기."""
+"""Codex 하네스 설치기. 선택적으로 Claude 호환 형식도 생성한다(표준 라이브러리)."""
 import argparse
 from datetime import datetime
 import os
@@ -11,25 +11,22 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "harness"
-SKILLS = SOURCE / ".claude/skills"
+SKILLS = SOURCE / ".agents/skills"
 COMMANDS = ("kickoff", "interview", "spec", "delegate", "wrapup")
 
 
-def codex_text(text):
-    """Claude 전용 표기와 지침 파일명을 Codex 형식으로 바꾼다."""
+def claude_text(text):
+    """Codex 원본을 Claude 호환 표기·지침으로 바꾼다."""
     if text.startswith("---\n"):
         _, frontmatter, body = text.split("---\n", 2)
-        fields = [line for line in frontmatter.splitlines()
-                  if not line.startswith(("disable-model-invocation:", "argument-hint:"))]
-        text = "---\n" + "\n".join(fields) + "\n---\n" + body
+        text = "---\n" + frontmatter + "disable-model-invocation: true\n---\n" + body
     for name in COMMANDS:
-        text = re.sub(r"/" + name + r"\b(?!/)", lambda _: "$" + name, text)
-    return (text.replace(".claude/skills/", ".agents/skills/")
-            .replace("CLAUDE.md", "AGENTS.md")
-            .replace("module-claude.template.md", "module-agents.template.md")
-            .replace("/clear", "/new")
-            .replace("$ARGUMENTS", "호출 메시지의 인자")
-            .replace("Agent 도구(general-purpose)", "사용 가능한 서브에이전트 도구"))
+        text = re.sub(r"\$" + name + r"\b", lambda _: "/" + name, text)
+    return (text.replace(".agents/skills/", ".claude/skills/")
+            .replace("AGENTS.md", "CLAUDE.md")
+            .replace("module-agents.template.md", "module-claude.template.md")
+            .replace("$스킬명", "/스킬명")
+            .replace("/new", "/clear"))
 
 
 def command_text(text, source):
@@ -38,10 +35,9 @@ def command_text(text, source):
         label, link = match.groups()
         if "://" in link or link.startswith(("/", "#")):
             return match.group(0)
-        target = Path(os.path.relpath((source.parent / link).resolve(), SOURCE)).as_posix()
+        target = claude_text(Path(os.path.relpath((source.parent / link).resolve(), SOURCE)).as_posix())
         return "[" + (target if label == link else label) + "](" + target + ")"
-    return re.sub(r"\[([^\]]*)\]\(([^)]+)\)", relocate, text).replace(
-        "${CLAUDE_SKILL_DIR}", ".claude/skills/" + source.parent.name)
+    return re.sub(r"\[([^\]]*)\]\(([^)]+)\)", relocate, text)
 
 
 def rule_path(destination, tool, data):
@@ -67,32 +63,29 @@ def installation_files(destination, tool):
         if not source.is_file():
             continue
         relative = source.relative_to(SKILLS)
-        text = source.read_text(encoding="utf-8")
-        if tool == "codex":
-            text = codex_text(text).replace(
-                "${CLAUDE_SKILL_DIR}", ".agents/skills/" + relative.parts[0])
-            if relative.name == "module-claude.template.md":
-                relative = relative.with_name("module-agents.template.md")
-        files.append((prefix / relative, text.encode(), False))
-        if source.name == "SKILL.md":
-            name = source.parent.name
-            if tool == "codex":
-                policy = b"policy:\n  allow_implicit_invocation: false\n"
-                files.append((prefix / name / "agents/openai.yaml", policy, False))
-            elif tool == "claude-commands":
-                command = command_text(text, source)
-                files.append((Path(".claude/commands") / (name + ".md"), command.encode(), False))
-    rules = (SOURCE / "CLAUDE.md").read_text(encoding="utf-8")
-    if tool == "codex":
-        rules = codex_text(rules)
-    data = rules.encode()
+        data = source.read_bytes()
+        if tool != "codex":
+            if relative.parts[-2:] == ("agents", "openai.yaml"):
+                continue
+            if source.suffix == ".md":
+                data = claude_text(data.decode("utf-8")).encode("utf-8")
+            if relative.name == "module-agents.template.md":
+                relative = relative.with_name("module-claude.template.md")
+        files.append((prefix / relative, data, False))
+        if source.name == "SKILL.md" and tool == "claude-commands":
+            command = command_text(data.decode("utf-8"), source)
+            files.append((Path(".claude/commands") / (source.parent.name + ".md"),
+                          command.encode("utf-8"), False))
+    data = (SOURCE / "AGENTS.md").read_bytes()
+    if tool != "codex":
+        data = claude_text(data.decode("utf-8")).encode("utf-8")
     files.append((rule_path(destination, tool, data), data, False))
     templates = SKILLS / "kickoff/templates/docs"
     for source in sorted(templates.rglob("*.md")):
-        text = source.read_text(encoding="utf-8")
-        if tool == "codex":
-            text = codex_text(text)
-        files.append((Path("docs") / source.relative_to(templates), text.encode(), True))
+        data = source.read_bytes()
+        if tool != "codex":
+            data = claude_text(data.decode("utf-8")).encode("utf-8")
+        files.append((Path("docs") / source.relative_to(templates), data, True))
     return files
 
 
@@ -153,7 +146,8 @@ def install(destination, tool, force):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("destination", type=Path, help="이미 존재하는 과제 프로젝트 디렉터리")
-    parser.add_argument("--tool", choices=("claude", "claude-commands", "codex"), default="claude")
+    parser.add_argument("--tool", choices=("codex", "claude", "claude-commands"), default="codex",
+                        help="설치할 도구 (기본: codex)")
     parser.add_argument("--force", action="store_true", help="충돌 파일을 백업한 뒤 교체 (docs/는 보존)")
     args = parser.parse_args()
     destination = args.destination.resolve()

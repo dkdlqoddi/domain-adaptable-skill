@@ -16,9 +16,9 @@ zip -qz "$STAGE/harness.zip" <<'EOF'
   HARNESS_KIT=$(mktemp -d)
   unzip -q harness.zip -d "$HARNESS_KIT" || python3 -m zipfile -e harness.zip "$HARNESS_KIT"
   bash "$HARNESS_KIT/scripts/install.sh" "$PWD" && rm harness.zip
-Codex: 설치 줄의 "$PWD" 뒤에 --tool codex / 구버전 Claude: --tool claude-commands
+기본은 Codex(AGENTS.md + .agents/skills/). Claude: --tool claude / 구버전 Claude: --tool claude-commands
 충돌 시 쓰기 전에 중단(zip은 남음). --force는 백업 후 교체. docs/는 항상 보존.
-그다음 치트시트 준비 블록대로 Git 설정·첫 커밋 → claude → /kickoff README.md <마감 시각> (Codex: $kickoff).
+그다음 치트시트 준비 블록대로 Git 설정·첫 커밋 → codex → $kickoff README.md <마감 시각>.
 EOF
 mv "$STAGE/harness.zip" "$OUT/harness.zip"
 echo "생성: $OUT/harness.zip ($(du -h "$OUT/harness.zip" | cut -f1))"

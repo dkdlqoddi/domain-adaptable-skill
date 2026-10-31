@@ -10,30 +10,32 @@ budget() {
   if [ "$n" -le "$2" ]; then echo OK; else echo "초과"; fail=1; fi
 }
 echo "== 줄 수 예산 =="
-budget "$H/CLAUDE.md" 80
-for s in "$H"/.claude/skills/*/SKILL.md; do budget "$s" 120; done
-for t in "$H"/.claude/skills/*/*.md; do case "$t" in */SKILL.md) ;; *) budget "$t" 80 ;; esac; done
-P="$H/.claude/skills/kickoff/templates/docs/domain/primer.md"; [ -f "$P" ] && budget "$P" 80
+budget "$H/AGENTS.md" 80
+for s in "$H"/.agents/skills/*/SKILL.md; do budget "$s" 120; done
+for t in "$H"/.agents/skills/*/*.md; do case "$t" in */SKILL.md) ;; *) budget "$t" 80 ;; esac; done
+P="$H/.agents/skills/kickoff/templates/docs/domain/primer.md"; [ -f "$P" ] && budget "$P" 80
 
 echo "== 프런트매터 =="
 always_desc=0
-for s in "$H"/.claude/skills/*/SKILL.md; do
+for s in "$H"/.agents/skills/*/SKILL.md; do
   d=$(basename "$(dirname "$s")")
   [ "$(head -1 "$s")" = "---" ] || { echo "  $d: 첫 줄이 --- 가 아님"; fail=1; }
   n=$(awk '/^---$/{c++; next} c==1 && /^name:/{sub(/^name:[ ]*/,""); print; exit}' "$s")
   [ "$n" = "$d" ] || { echo "  $d: name '$n' ≠ 폴더명"; fail=1; }
   desc=$(awk '/^---$/{c++; next} c==1 && /^description:/{sub(/^description:[ ]*/,""); print; exit}' "$s")
   [ -n "$desc" ] || { echo "  $d: description 없음"; fail=1; }
-  if ! awk '/^---$/{c++; next} c==1 && /^disable-model-invocation: *true/{f=1} END{exit !f}' "$s"; then
-    echo "  $d: (참고) 모델 자동 호출 허용 — 설명 ~$(( ${#desc} / 2 )) tok 이 매 세션 컨텍스트에 실림"
+  policy="$(dirname "$s")/agents/openai.yaml"
+  if ! [ -f "$policy" ] || ! grep -q '^  allow_implicit_invocation: false$' "$policy"; then
+    echo "  $d: 사용자 호출 전용 정책 누락 (agents/openai.yaml)"
     always_desc=$(( always_desc + ${#desc} / 2 ))
+    fail=1
   fi
 done
-echo "  스킬 $(ls -d "$H"/.claude/skills/*/ | wc -l)개 확인"
+echo "  스킬 $(ls -d "$H"/.agents/skills/*/ | wc -l)개 확인"
 
 echo "== 참조 파일 =="
 missing=0
-for s in "$H"/.claude/skills/*/SKILL.md; do
+for s in "$H"/.agents/skills/*/SKILL.md; do
   dir=$(dirname "$s")
   for ref in $(grep -o '](\([A-Za-z0-9_./-]*\.md\))' "$s" | sed 's/^](//; s/)$//'); do
     [ -e "$dir/$ref" ] || { echo "  $(basename "$dir"): 없는 참조 $ref"; missing=1; }
@@ -41,9 +43,9 @@ for s in "$H"/.claude/skills/*/SKILL.md; do
 done
 [ $missing -eq 0 ] && echo "  모두 존재" || fail=1
 
-echo "== Claude에서 하네스가 더하는 양 (근사, 시스템·도구·대화 토큰 제외) =="
-always=$(tok "$H/CLAUDE.md")
-echo "  CLAUDE.md ~${always} tok  +  스킬 설명 ~${always_desc} tok  =  ~$(( always + always_desc )) tok"
+echo "== Codex에서 하네스가 더하는 양 (근사, 시스템·도구·대화 토큰 제외) =="
+always=$(tok "$H/AGENTS.md")
+echo "  AGENTS.md ~${always} tok  +  자동 로드 스킬 설명 ~${always_desc} tok  =  ~$(( always + always_desc )) tok"
 echo "== 설치·패키징 회귀 검증 =="
 for script in "$ROOT"/scripts/*.sh; do bash -n "$script" || fail=1; done
 python3 -B -m unittest discover -s "$ROOT/scripts" -p 'test_*.py' || fail=1
