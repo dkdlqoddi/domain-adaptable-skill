@@ -5,7 +5,7 @@
 | 단계 | 할 일 |
 |---|---|
 | 미리 (이 PC) | 저장소에서 `scripts/check.sh` → `scripts/pack.sh`. `dist/harness.zip`과 이 치트시트 챙기기 |
-| 환경 확인 | `claude --version`(또는 `codex --version`)·`python3 --version`·`git --version`, 마감 시각 |
+| 환경 확인 | `claude --version`(또는 `codex --version`)·`tmux -V`·`python3 --version`·`git --version`, Codex 로그인·마감 시각 |
 | 설치·첫 커밋 | `harness.zip`을 과제 루트에 올리고 아래 블록. Codex는 주석대로 두 곳, 구버전 Claude는 설치 줄에 `--tool claude-commands` |
 | 충돌 | 기본은 아무것도 쓰지 않고 중단(zip은 남음). `--force`는 지침·스킬을 백업 후 교체. 기존 docs는 항상 보존 |
 | 리허설 (이 PC) | `scripts/install.sh <과제 경로>` 뒤 블록의 `git` 줄부터 |
@@ -31,11 +31,11 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 | 시작 | `/kickoff README.md 13:00` | `$kickoff README.md 13:00` | 마감 시각(또는 남은 시간 `3h45m`, 생략 시 6h). 과제 재정의, 모르는 것, 시간표 |
 | 탐색 ~0:40 | `/interview` | `$interview` | 질문을 본인 말로 바꿔 페르소나에게 묻기 |
 | 답 정리 반복 | `/interview <답>` | `$interview <답>` | 답을 붙이면 기록 + 다음 질문. 중요한 미지수가 있으면 추가 회차 |
-| 다지기 | 자동 진행 | 자동 진행 | 빈틈 질문 → 요약 → 퀴즈. `그만`이면 다지기 종료, 퀴즈는 제출과 무관 |
+| 다지기 | 자동 진행 | 자동 진행 | 필수 지식 문서 → 요약 → 12문항. `그만`이면 종료, 제출과 무관 |
 | 계약 ~1:20 | `/spec` | `$spec` | P0≤3·비목표·입출력 픽스처·검증 명령·쓰기 범위 확정 |
 | 뼈대 | `/delegate S0` | `$delegate S0` | 입력 하나가 끝까지 흐르는 구현·검증·커밋 |
 | 구현 ~3:10 | `/delegate <다음 ID>` → `/clear` | `$delegate <다음 ID>` → `/new` | 브리프·위임·재검증·회귀·정리·커밋. 커밋(또는 보류 사유)이 docs에 남으면 비우고 다음 슬라이스. S2 무렵 실제 출력 시연 |
-| 마무리 3:10~4:00 | `/wrapup` | `$wrapup` | 통합 검증·화면·README·정리 → RETRO → 퀴즈. RETRO 끝까지 읽기 |
+| 마무리 3:10~4:00 | `/wrapup` | `$wrapup` | 통합 검증·README·RETRO·알고리즘 문서 → 16문항 |
 
 ## 인터뷰 사다리 — 한 묶음은 한 칸, 질문 3~5개
 
@@ -53,15 +53,20 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 
 | 상황 | 대응 (Codex는 스킬 앞의 `/`를 `$`로) |
 |---|---|
-| 병렬 | `/delegate S1 --parallel`: 의존성·쓰기 범위가 겹치지 않을 때만. 순차 작업은 같은 파일 수정 가능 |
+| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + `codex --yolo`에 브리프 전문 전달. 독립 작업 기본 2개, 최대 3개 |
+| 순차 | `/delegate S1 --serial`. 선행 의존성 미완료·쓰기 파일·검증 자원 충돌 시에도 순차 |
 | 새 요구 | `/interview <답>` → `/spec` → `/delegate <새 ID>` |
 | 버그 | 최소 재현 → 원인·파일·검증 3줄 → 최소 수정 → 재검증 |
 | 기존 변경 | 시작 상태와 비교해 보존. 기존 staged가 있으면 자동 스테이징·커밋 보류, 이유·경로 확인 |
 | 커밋 | 검토한 개별 파일만. 다른 브리프·캐시·`.harness-backups/` 제외. 범위 밖 파일 임의 복구 금지 |
-| 위임 도구 없음 | 같은 브리프·검증 규칙으로 루트에서 순차 구현 |
+| tmux·Codex 없음·실행 불가 | 사유를 알리고 같은 브리프·검증 규칙으로 루트에서 순차 구현 |
 | 마무리 실패 | 시간이 있으면 고친 뒤 `/wrapup` 재실행. 없으면 '실패를 RETRO에 적고 진행'을 고른다 |
 | 검증만 / 복습만 | `/wrapup check` / `/interview quiz` |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성은 유지 |
+
+병렬 세션의 보고를 모두 회수하고 작업자를 멈춘 뒤 루트가 문서·검증·커밋을 처리한다. [실행·회수 명령](../harness/.claude/skills/delegate/tmux.md)
+`KNOWLEDGE.md`: 필수 개념·알고리즘·자료구조·실행 추적·복잡도·대안·한계. `QUIZ.md`: 문제, `QUIZ-ANSWERS.md`: 풀이·근거·채점.
+퀴즈는 4문항씩, 절반 이상 서술·계산·추적, 문항별 0~2점(기본 /24, 마무리 /32)이다. 약점 보충 최대 2문항. 학습 기록만 바꾸며 제출을 막지 않는다.
 
 ## 반입 불가 — 최소 지침 (Claude: CLAUDE.md / Codex: AGENTS.md)
 

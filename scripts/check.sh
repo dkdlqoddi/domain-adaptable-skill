@@ -33,9 +33,9 @@ echo "  스킬 $(ls -d "$H"/.claude/skills/*/ | wc -l)개 확인"
 
 echo "== 참조 파일 =="
 missing=0
-for s in "$H"/.claude/skills/*/SKILL.md; do
+for s in "$H"/.claude/skills/*/*.md; do
   dir=$(dirname "$s")
-  for ref in $(grep -o '](\([A-Za-z0-9_./-]*\.md\))' "$s" | sed 's/^](//; s/)$//'); do
+  for ref in $(grep -oE ']\([A-Za-z0-9_./-]+\.(md|py)\)' "$s" | sed 's/^](//; s/)$//'); do
     [ -e "$dir/$ref" ] || { echo "  $(basename "$dir"): 없는 참조 $ref"; missing=1; }
   done
 done

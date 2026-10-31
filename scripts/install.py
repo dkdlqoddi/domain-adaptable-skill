@@ -28,6 +28,7 @@ def codex_text(text):
             .replace("CLAUDE.md", "AGENTS.md")
             .replace("module-claude.template.md", "module-agents.template.md")
             .replace("/clear", "/new")
+            .replace("/스킬명", "$스킬명")
             .replace("$ARGUMENTS", "호출 메시지의 인자")
             .replace("Agent 도구(general-purpose)", "사용 가능한 서브에이전트 도구"))
 
