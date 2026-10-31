@@ -7,7 +7,8 @@ Cofa Probe 환경의 해커톤을 위한 **Codex용 개인 하네스**입니다.
 
 다섯 스킬이 작업 절차를 안내하고, 지식과 결정은 과제 프로젝트의 `docs/`에 남깁니다.
 `$interview`는 페르소나에게 물을 질문을 만들고, 답을 정리하며, 인터뷰가 끝나면 다지기·요약·퀴즈를 진행합니다.
-`$delegate`는 슬라이스 하나의 브리프·구현·검증·정리·커밋을 끝냅니다. 퀴즈는 제출이나 커밋을 막지 않습니다.
+`$delegate`는 독립 슬라이스를 tmux의 `codex --yolo` 세션에 텍스트로 전달해 병렬 구현하고, 루트에서 각각 검증·정리·커밋합니다.
+퀴즈는 기본 12문항·마무리 16문항이며, 알고리즘과 필수 지식을 문제·해설·학습 문서로 남깁니다. 퀴즈는 제출이나 커밋을 막지 않습니다.
 
 ## 폴더 지도
 
@@ -28,7 +29,7 @@ domain-adaptable-skill/
 │   ├── install.sh / install.py     Codex 설치·백업, 선택적 Claude 호환 변환
 │   ├── pack.sh                    dist/harness.zip 설치 키트 생성
 │   ├── check.sh                   줄 수·메타데이터·참조·설치 회귀 검사
-│   └── test_install.py            원본 복사·충돌·보존·호환·ZIP 검증
+│   └── test_*.py                  설치·보존·호환·ZIP·tmux 텍스트 전달 검증
 └── examples/                       과거 리허설 기록과 직접 연습할 과제 키트
 ```
 
@@ -46,6 +47,9 @@ Codex는 프로젝트의 `.agents/skills/`에서 스킬을 찾고 `$이름`으�
 │   ├── TASKS.md                    시간표·슬라이스·검증 명령·BLOCKER
 │   ├── DECISIONS.md                결정과 거절한 AI 제안
 │   ├── GLOSSARY.md                 현업 용어
+│   ├── KNOWLEDGE.md                필수 지식·알고리즘·복잡도·실행 예·대안
+│   ├── QUIZ.md                     기본 12문항·마무리 16문항과 복습 위치
+│   ├── QUIZ-ANSWERS.md             별도 풀이·근거·채점 기준
 │   └── domain/                    persona·workflow·constraints·success·primer
 ├── fixtures/                       $spec이 생성하는 입출력 샘플
 └── <모듈>/AGENTS.md                모듈이 여럿일 때 $spec이 생성
@@ -56,7 +60,7 @@ Codex는 프로젝트의 `.agents/skills/`에서 스킬을 찾고 `$이름`으�
 
 ## 준비와 설치 (터미널)
 
-Bash와 Python 3.8 이상이 필요합니다. 패키징에는 `zip`, 작업에는 Git과 Codex CLI가 필요합니다.
+Bash와 Python 3.8 이상이 필요합니다. 패키징에는 `zip`, 작업에는 Git과 Codex CLI가 필요합니다. 병렬 작업에는 `tmux`와 로그인된 Codex CLI가 필요합니다.
 
 ```bash
 # 이 저장소에서 검사한 뒤, 이미 존재하는 과제 폴더에 설치
@@ -113,11 +117,11 @@ codex
 | 시작 | `$kickoff README.md 13:00` | SPEC 초안·열린 질문·TASKS 시간표. `3h45m`도 가능, 생략 시 6시간 |
 | 탐색 ~0:40 | `$interview` | 질문 3~5개를 본인 말로 바꿔 페르소나에게 묻기 |
 | 답 정리 반복 | `$interview <답변>` | domain·GLOSSARY·SPEC 갱신 + 다음 질문 |
-| 다지기·복습 | 인터뷰 종료 뒤 자동 진행 | 빈틈 질문 → 요약 → 퀴즈. `그만`으로 종료 가능 |
+| 다지기·복습 | 인터뷰 종료 뒤 자동 진행 | 필수 지식 문서 → 요약 → 12문항 심화 퀴즈. `그만`으로 종료 가능 |
 | 계약 ~1:20 | `$spec` | P0≤3·비목표·픽스처·슬라이스·검증 명령 확정 |
 | 뼈대 | `$delegate S0` | 입력부터 출력까지 흐르는 뼈대·검증·커밋 |
-| 구현 ~3:10 | `$delegate S1` → `/new` → `$delegate S2` | 구현·검증·정리·커밋. 두 슬라이스쯤 뒤 실제 출력 시연 |
-| 마무리 3:10~4:00 | `$wrapup` | 통합 검증·실행 README·정리·RETRO·요약·퀴즈 |
+| 구현 ~3:10 | `$delegate S1` → `/new` → 다음 TODO | 독립 작업은 자동 병렬, 루트에서 슬라이스별 검증·정리·커밋. 실제 출력 시연 |
+| 마무리 3:10~4:00 | `$wrapup` | 통합 검증·실행 README·RETRO·알고리즘 문서·16문항 퀴즈 |
 
 커밋 또는 보류 사유가 `docs/`에 남은 뒤 `/new`로 새 대화를 시작하고 파일에서 재개합니다. [OpenAI 공식 명령 문서](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
 모듈별 지침은 `<모듈>/AGENTS.md`에 두며, 루트에서 위임할 때도 관련 지침을 브리프에 포함합니다. [AGENTS.md 공식 문서](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
@@ -126,27 +130,35 @@ codex
 
 | 상황 | 입력·처리 |
 |---|---|
-| 독립 작업 병렬 구현 | `$delegate S1 --parallel`. 의존성·쓰기 범위가 겹치지 않는 TODO만 병렬 |
-| 서브에이전트 도구 없음·위임 불가 | 같은 브리프와 검증 규칙으로 루트에서 순차 구현 |
+| 독립 작업 병렬 구현 | `$delegate S1` 또는 `$delegate S1 --parallel`. 선행 의존성이 DONE이고 쓰기 파일·검증 자원이 겹치지 않는 TODO를 기본 2개, 최대 3개 병렬 |
+| 한 슬라이스만 순차 구현 | `$delegate S1 --serial` |
+| tmux·Codex 없음 또는 실행 불가 | 사유를 알리고 같은 브리프·검증 규칙으로 루트에서 순차 구현 |
 | 구현 중 새 요구 | `$interview <답>` → `$spec` → `$delegate <새 ID>`. 기존 DONE은 유지 |
 | 계약 변경 BLOCKER | 루트에서 SPEC·CONTRACT·픽스처 갱신 후 재위임 |
 | 검증 실패 | 재현 → 원인·수정 파일·검증 방법 → 수정·재검증. 통과 전 DONE 금지 |
 | 기존 staged 변경 | 구현·검증은 진행하되 자동 스테이징·커밋 보류. 기존 작업 보존 |
 | 검증만 / 복기만 | `$wrapup check` / `$wrapup retro`. retro 단독도 통합 검증부터 |
-| 복습만 | `$interview quiz`. 퀴즈는 파일·제출 상태를 바꾸지 않음 |
+| 복습만 | `$interview quiz`. KNOWLEDGE·QUIZ·QUIZ-ANSWERS를 갱신하고 12문항. SPEC·TASKS·제출 상태는 유지 |
 | 스킬이 안 보임 | 과제 루트의 `.agents/skills/*/SKILL.md` 확인, `/skills` 또는 `$`로 선택, 필요하면 Codex 재시작 |
 | 지침이 다르게 적용됨 | 해당 폴더와 상위 경로의 `AGENTS.override.md` 확인. 사용자 지침과 병합 |
 | 하네스 반입 불가 | [치트시트](docs/03-cheatsheet.md)의 최소 AGENTS.md 사용 |
 
 커밋은 검토한 개별 파일만 추가하고, 다른 슬라이스의 브리프·캐시·설치 백업은 섞지 않습니다. [공통 Git 절차](harness/.agents/skills/delegate/git-workflow.md)
 
+### 병렬 실행과 학습 문서
+
+[tmux 실행 절차](harness/.agents/skills/delegate/tmux.md)의 실행기가 브리프·루트·모듈 지침 전문을 초기 프롬프트로 전달합니다. `--yolo`는 승인과 샌드박스를 끄므로 허용된 작업 환경에서 사용합니다. [공식 CLI 옵션](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
+작업자는 겹치지 않는 코드와 전용 보고서만 쓰고, 루트는 모든 보고를 회수해 세션을 멈춘 뒤 공유 문서·통합 검증·커밋을 처리합니다. 세션 종료만으로 DONE 처리하지 않습니다.
+
+[학습 문서·출제 기준](harness/.agents/skills/interview/learning.md)에 따라 실제 알고리즘·자료구조, 입력의 단계별 추적, 시간·공간 복잡도, 불변식, 반례, 대안과 실패 진단을 기록합니다. 기본 12문항·마무리 16문항 중 절반 이상은 서술·계산·추적이며, 4문항씩 답을 받습니다. 문항별 0~2점과 약점 보충 최대 2문항을 적용하고, 문제와 해설을 분리합니다. `그만`이면 남은 학습을 문서에 남깁니다.
+
 ## 설계와 검증
 
-- 지식은 `docs/domain/`과 `GLOSSARY.md`, 결정은 `DECISIONS.md`에 기록합니다.
+- 현장 지식은 `docs/domain/`·`GLOSSARY.md`, 필수 지식과 알고리즘은 `KNOWLEDGE.md`, 문제·해설은 `QUIZ.md`·`QUIZ-ANSWERS.md`, 결정은 `DECISIONS.md`에 기록합니다.
 - `AGENTS.md`의 작은 코드 원칙으로 불필요한 기능·추상화를 줄이고, 입력 검증·데이터 보호·보안·접근성은 유지합니다.
 - 공통 지침은 80줄, 스킬 본문은 120줄, 참고 파일은 80줄 이내로 유지합니다. 필요한 파일만 읽고 세션 상태는 문서에 남깁니다.
 - `scripts/check.sh`는 줄 수·프런트매터·호출 정책·참조·설치 테스트를 검사합니다. 토큰 수는 바이트 기반 근사이며 전체 세션 비용이 아닙니다.
-- 설치 테스트는 기존 문서 보존·충돌·백업·재설치·Claude 호환·ZIP 설치 동등성을 검증합니다. 실제 AI의 인터뷰·위임·퀴즈 동작은 별도 리허설 대상입니다.
+- 설치 테스트는 학습 문서를 포함한 기존 문서 보존·충돌·백업·재설치·Claude 호환·ZIP 동등성을 검증합니다. tmux가 있으면 가짜 Codex로 실제 세션의 텍스트 전달·동시 실행·실패도 검사합니다. 실제 모델의 구현 품질과 퀴즈 진행은 별도 리허설 대상입니다.
 
 ## Claude 호환 설치
 

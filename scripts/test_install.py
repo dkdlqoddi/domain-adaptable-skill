@@ -45,7 +45,8 @@ class InstallationTest(unittest.TestCase):
         self.install()
         before = snapshot(self.project)
         self.assertEqual(len(list((self.project / ".agents/skills").glob("*/SKILL.md"))), 5)
-        self.assertEqual(len(list((self.project / "docs").rglob("*.md"))), 10)
+        templates = ROOT / "harness/.agents/skills/kickoff/templates/docs"
+        self.assertEqual(snapshot(self.project / "docs"), snapshot(templates))
         for relative, data in snapshot(ROOT / "harness").items():
             self.assertEqual(before[relative], data, relative)
         self.assertFalse((self.project / ".claude").exists())
@@ -106,6 +107,23 @@ class InstallationTest(unittest.TestCase):
         self.install()
         self.assertEqual((self.project / "docs/SPEC.md").read_text(), "existing spec\n")
         self.assertTrue((self.project / "docs/TASKS.md").is_file())
+
+    def test_learning_docs_survive_force_and_runner_is_copied_for_every_tool(self):
+        source = ROOT / "harness/.agents/skills/delegate/scripts/tmux_codex.py"
+        for tool, prefix in (("codex", ".agents"), ("claude", ".claude"), ("claude-commands", ".claude")):
+            with self.subTest(tool=tool):
+                self.project = self.base / tool
+                self.project.mkdir()
+                for name in ("KNOWLEDGE.md", "QUIZ.md", "QUIZ-ANSWERS.md"):
+                    self.write("docs/" + name, "사용자가 이미 쓴 내용: " + name)
+                self.install("--tool", tool, "--force")
+                for name in ("KNOWLEDGE.md", "QUIZ.md", "QUIZ-ANSWERS.md"):
+                    self.assertEqual((self.project / "docs" / name).read_text(), "사용자가 이미 쓴 내용: " + name)
+                installed = self.project / prefix / "skills/delegate/scripts/tmux_codex.py"
+                self.assertEqual(installed.read_bytes(), source.read_bytes())
+                result = subprocess.run(["python3", "-B", str(installed), "start", "--help"],
+                                        text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_codex_preserves_conflicting_agents_by_default(self):
         self.write("AGENTS.md", "user agent rules\n")
