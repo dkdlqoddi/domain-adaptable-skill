@@ -264,26 +264,37 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
         idle = self.command(*quick, "--timeout", "1")
         self.assertEqual((idle["changed"], idle["running"], idle["timed_out"]), ([], ["S1"], True))
         self.assertEqual(idle["runs"][0]["output_tail"], "")
-        # 같은 단계·메시지를 다시 게시한 것(생존 신호)은 변화가 아니다.
-        self.command("progress", "--run-dir", str(directory), "--phase", "implementing", "--message", "샘플 구현 중")
-        self.assertTrue(self.command(*quick, "--timeout", "1")["timed_out"])
-        waiting = subprocess.Popen([sys.executable, "-B", str(RUNNER), *quick, "--timeout", "10"],
-                                   env=self.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        time.sleep(0.3)
+        # 단계·메시지 갱신은 부모를 깨우지 않는다. 바뀐 내용은 시간 초과 때 runs에 보인다.
         self.command("progress", "--run-dir", str(directory), "--phase", "verifying", "--message", "검증 중")
-        output, error = waiting.communicate(timeout=15)
-        self.assertEqual(waiting.returncode, 0, error)
-        woke = json.loads(output)
-        self.assertEqual((woke["changed"], woke["timed_out"]), (["S1"], False))
-        self.assertEqual(woke["runs"][0]["progress"]["phase"], "verifying")
-        (directory / "finish").touch()
-        self.wait_file(Path(run["report"]))
-        started = time.monotonic()
-        done = self.command(*quick, "--timeout", "30", "--tail", "5")
-        self.assertLess(time.monotonic() - started, 10)
-        self.assertEqual((done["running"], done["timed_out"]), ([], False))
+        quiet = self.command(*quick, "--timeout", "1")
+        self.assertEqual((quiet["changed"], quiet["timed_out"]), ([], True))
+        self.assertEqual(quiet["runs"][0]["progress"]["message"], "검증 중")
+
+        def wake_on(action):
+            waiting = subprocess.Popen([sys.executable, "-B", str(RUNNER), *quick, "--timeout", "10"],
+                                       env=self.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            time.sleep(0.3)
+            started = time.monotonic()
+            action()
+            output, error = waiting.communicate(timeout=15)
+            self.assertEqual(waiting.returncode, 0, error)
+            self.assertLess(time.monotonic() - started, 5)
+            return json.loads(output)
+
+        # blocked 진입은 바로 깨운다.
+        blocked = wake_on(lambda: self.command("progress", "--run-dir", str(directory),
+                                               "--phase", "blocked", "--message", "계약 확인 필요"))
+        self.assertEqual((blocked["changed"], blocked["running"], blocked["timed_out"]), (["S1"], ["S1"], False))
+        # blocked에서 벗어나는 갱신(작업자의 verifying)은 깨우지 않고, 보고 도착(상태 변화)이 깨운다.
+        done = wake_on(lambda: (directory / "finish").touch())
+        self.assertEqual((done["changed"], done["running"], done["timed_out"]), (["S1"], [], False))
         self.assertEqual(done["runs"][0]["state"], "REPORTED_COMPLETE")
-        self.assertIn("worker output", done["runs"][0]["output_tail"])
+        # 실행 중인 작업이 없으면 바로 돌아온다.
+        started = time.monotonic()
+        idle_done = self.command(*quick, "--timeout", "30", "--tail", "5")
+        self.assertLess(time.monotonic() - started, 10)
+        self.assertEqual((idle_done["changed"], idle_done["running"], idle_done["timed_out"]), ([], [], False))
+        self.assertIn("worker output", idle_done["runs"][0]["output_tail"])
 
     def test_root_rules_are_passed_once_and_codex_rules_are_not_repeated(self):
         (self.project / "CLAUDE.md").write_text("클로드 루트 규칙\n", encoding="utf-8")
