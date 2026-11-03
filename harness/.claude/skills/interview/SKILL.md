@@ -1,6 +1,6 @@
 ---
 name: interview
-description: 현업 질문·답변을 docs/domain·GLOSSARY·SPEC에 정리하고 빈틈을 다진다. 필수 지식·알고리즘 문서와 12문항의 심화 퀴즈·해설을 작성한다. `quiz`는 학습 문서와 퀴즈만 갱신한다.
+description: 현업 질문·답변을 docs/domain·GLOSSARY·SPEC에 정리하고, 인터뷰가 끝나면 빈틈을 다진 뒤 요약과 확인 4문항으로 마친다. `quiz`는 필수 지식·알고리즘 문서와 12문항 심화 퀴즈·해설을 작성한다.
 disable-model-invocation: true
 argument-hint: "[페르소나의 답변 | quiz] — 없으면 첫 질문"
 ---
@@ -17,7 +17,7 @@ argument-hint: "[페르소나의 답변 | quiz] — 없으면 첫 질문"
 ## 흐름
 - 호출 메시지에 인자가 없으면 → **질문 만들기**만 한다.
 - 답변이 붙어 있으면(앞에 붙은 `digest`는 무시) → **정리** → 이어서 **질문 만들기**. 멈추는 기준에 닿았으면 질문 대신 **다지기**.
-- `quiz`면 → [grill.md](grill.md)의 읽기·학습 문서 → 요약 → 12문항 퀴즈(복습용). SPEC·TASKS·제출 상태는 바꾸지 않는다.
+- `quiz`면 → [grill.md](grill.md)의 읽기·학습 문서 → 요약 → 12문항 심화 퀴즈(복습용). SPEC·TASKS·제출 상태는 바꾸지 않는다.
 
 ## 정리 (답변이 있을 때)
 1. 답변을 분리한다: 사실 / 용어 / 제약 / 우선순위 신호 / 새로 생긴 질문 / 기존 기록과의 모순.

@@ -30,8 +30,8 @@
    ```
 
 ## 진행 (2시간 압축판, 실전은 `/kickoff 4h`)
-- 준비 3에서 연 Claude에 `/kickoff 2h` → 이후는 각 명령의 `다음:` 안내를 따릅니다. `docs/03-cheatsheet.md`의 표를 옆에 둡니다. Codex는 `codex`로 시작해 `$kickoff 2h`, 슬라이스 뒤에는 `/new`를 씁니다.
-- 명령은 5개입니다: `/kickoff` → `/interview` → `/spec` → `/delegate` → `/wrapup`. 인터뷰가 끝나면 `/interview`가 이어서 다지기·요약·퀴즈를 합니다.
+- 준비 3에서 연 Claude에 `/kickoff 2h` → 이후는 각 명령의 `다음:` 안내를 따릅니다. `docs/03-cheatsheet.md`의 표를 옆에 둡니다. Codex는 `codex`로 시작해 `/skills`·`/mcp`·`/status`로 실전에 없을 개인 스킬·MCP·승인 정책이 켜져 있는지 본 뒤 `$kickoff 2h`, 슬라이스 뒤에는 `/new`를 씁니다.
+- 명령은 5개입니다: `/kickoff` → `/interview` → `/spec` → `/delegate` → `/wrapup`. 인터뷰가 끝나면 `/interview`가 이어서 다지기·요약·확인 4문항을 합니다.
 - `/interview`가 만든 질문을 본인 말로 바꿔 페르소나 채팅에 묻고, 받은 답을 통째로 `/interview <답변>`에 붙입니다. 정리하고 다음 질문까지 한 번에 나옵니다.
 - `/delegate`는 위임 → 검증 → 과잉 설계 정리 → 커밋까지 합니다. 슬라이스 하나가 끝나면 `/clear`.
 - 슬라이스 두 개쯤 끝나면 실제 출력을 페르소나에게 한 번 보여 주고 반응을 받습니다.

@@ -150,6 +150,34 @@ class InstallationTest(unittest.TestCase):
         self.assertFalse((skills / "skills").exists())
         self.assertFalse((self.project / ".claude").exists())
 
+    def test_codex_conversion_keeps_claude_fallback_and_hints_out(self):
+        self.install("--tool", "codex")
+        delegate = (self.project / ".agents/skills/delegate/SKILL.md").read_text()
+        self.assertIn("사용 가능한 서브에이전트 도구", delegate)
+        self.assertNotIn("Agent 도구(general-purpose)", delegate)
+        for path in self.project.rglob("*.md"):
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"CLAUDE|\.claude|module-claude|\$ARGUMENTS")
+
+    def test_python_cache_is_neither_installed_nor_packed(self):
+        repo = self.base / "cache source"
+        shutil.copytree(ROOT / "harness", repo / "harness")
+        (repo / "scripts").mkdir()
+        for name in ("install.sh", "install.py", "pack.sh"):
+            shutil.copy2(ROOT / "scripts" / name, repo / "scripts" / name)
+        cache = repo / "harness/.claude/skills/delegate/scripts/__pycache__"
+        cache.mkdir()
+        (cache / "tmux_codex.cpython-310.pyc").write_bytes(b"\xa7\x0d\r\n\x00binary")
+        for tool in ("claude", "claude-commands", "codex"):
+            with self.subTest(tool=tool):
+                self.project = self.base / ("cache " + tool)
+                self.project.mkdir()
+                self.install("--tool", tool, script=repo / "scripts/install.sh")
+                self.assertEqual([p for p in self.project.rglob("*") if "__pycache__" in p.parts], [])
+        result = subprocess.run(["bash", str(repo / "scripts/pack.sh")], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with zipfile.ZipFile(repo / "dist/harness.zip") as archive:
+            self.assertEqual([n for n in archive.namelist() if "__pycache__" in n or n.endswith(".pyc")], [])
+
     def test_legacy_commands_resolve_supporting_files(self):
         self.install("--tool", "claude-commands")
         commands = self.project / ".claude/commands"

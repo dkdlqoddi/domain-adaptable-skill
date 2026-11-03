@@ -15,6 +15,11 @@ SKILLS = SOURCE / ".claude/skills"
 COMMANDS = ("kickoff", "interview", "spec", "delegate", "wrapup")
 
 
+def skip_source(path):
+    """실행 캐시는 배포하지 않는다(.gitignore에 가려 보이지 않아도 설치 키트에 섞일 수 있다)."""
+    return "__pycache__" in path.parts or path.suffix in (".pyc", ".pyo")
+
+
 def codex_text(text):
     """Claude 전용 표기와 지침 파일명을 Codex 형식으로 바꾼다."""
     if text.startswith("---\n"):
@@ -65,24 +70,25 @@ def installation_files(destination, tool):
     files = []
     prefix = Path(".agents/skills" if tool == "codex" else ".claude/skills")
     for source in sorted(SKILLS.rglob("*")):
-        if not source.is_file():
+        if not source.is_file() or skip_source(source):
             continue
         relative = source.relative_to(SKILLS)
-        text = source.read_text(encoding="utf-8")
-        if tool == "codex":
-            text = codex_text(text).replace(
-                "${CLAUDE_SKILL_DIR}", ".agents/skills/" + relative.parts[0])
-            if relative.name == "module-claude.template.md":
-                relative = relative.with_name("module-agents.template.md")
-        files.append((prefix / relative, text.encode(), False))
+        data = source.read_bytes()
+        # 표기 변환은 Markdown에만 한다. 실행기 같은 다른 파일은 바이트 그대로 복사한다.
+        if tool == "codex" and source.suffix == ".md":
+            data = codex_text(data.decode("utf-8")).replace(
+                "${CLAUDE_SKILL_DIR}", ".agents/skills/" + relative.parts[0]).encode("utf-8")
+        if tool == "codex" and relative.name == "module-claude.template.md":
+            relative = relative.with_name("module-agents.template.md")
+        files.append((prefix / relative, data, False))
         if source.name == "SKILL.md":
             name = source.parent.name
             if tool == "codex":
                 policy = b"policy:\n  allow_implicit_invocation: false\n"
                 files.append((prefix / name / "agents/openai.yaml", policy, False))
             elif tool == "claude-commands":
-                command = command_text(text, source)
-                files.append((Path(".claude/commands") / (name + ".md"), command.encode(), False))
+                command = command_text(data.decode("utf-8"), source)
+                files.append((Path(".claude/commands") / (name + ".md"), command.encode("utf-8"), False))
     rules = (SOURCE / "CLAUDE.md").read_text(encoding="utf-8")
     if tool == "codex":
         rules = codex_text(rules)
