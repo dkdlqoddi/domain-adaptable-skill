@@ -9,7 +9,7 @@ mkdir -p "$OUT"
 mkdir -p "$STAGE/payload/scripts"
 cp -r "$ROOT/harness" "$STAGE/payload/harness"
 cp "$ROOT/scripts/install.sh" "$ROOT/scripts/install.py" "$STAGE/payload/scripts/"
-( cd "$STAGE/payload" && zip -qr "$STAGE/harness.zip" . )
+( cd "$STAGE/payload" && zip -qr "$STAGE/harness.zip" . -x '*/__pycache__/*' '*.pyc' '*.pyo' )
 zip -qz "$STAGE/harness.zip" <<'EOF'
 하네스 설치 키트 — Bash, Python 3.8+ 필요 (unzip이 없으면 python3 -m zipfile -e)
 과제 프로젝트 루트에서 실행 (프로젝트에 직접 압축을 풀지 않음):

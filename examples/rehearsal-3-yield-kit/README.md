@@ -24,14 +24,14 @@
    powershell.exe -NoProfile -Command "Get-Content -Raw -Encoding UTF8 '$(wslpath -w $R/examples/rehearsal-3-yield-kit/persona.md)' | Set-Clipboard"
    ```
    Gemini 같은 다른 AI의 **새 채팅**에 붙여 넣고 보냅니다. 답이 "네, 준비됐습니다. 편하게 물어보세요." 한 줄이면 준비가 끝난 것입니다. 지시문을 요약하는 답이 나오면 읽지 말고 그 채팅을 닫은 뒤 새 채팅에서 다시 합니다.
-3. 과제 프로젝트 루트에서 Codex를 시작합니다. 개인 설정은 바꾸지 않으며, 실전에서 사용할 수 있는 도구와 같은 조건인지 확인합니다.
+3. 과제 프로젝트 루트에서 Codex를 시작한 뒤 `/skills`·`/mcp`·`/status`로 실전에 없을 개인 스킬·MCP 도구·승인 정책이 켜져 있는지 봅니다. 켜져 있으면 리허설 중에 쓰지 않습니다(개인 설정 파일은 바꾸지 않습니다).
    ```bash
    codex
    ```
 
 ## 진행 (2시간 압축판, 실전은 `$kickoff 4h`)
 - 준비 3에서 연 Codex에 `$kickoff 2h` → 이후는 각 명령의 `다음:` 안내를 따릅니다. `docs/03-cheatsheet.md`의 표를 옆에 둡니다. 슬라이스 뒤에는 `/new`로 새 대화를 시작합니다.
-- 명령은 5개입니다: `$kickoff` → `$interview` → `$spec` → `$delegate` → `$wrapup`. 인터뷰가 끝나면 `$interview`가 이어서 다지기·요약·퀴즈를 합니다.
+- 명령은 5개입니다: `$kickoff` → `$interview` → `$spec` → `$delegate` → `$wrapup`. 인터뷰가 끝나면 `$interview`가 이어서 다지기·요약·확인 4문항을 합니다.
 - `$interview`가 만든 질문을 본인 말로 바꿔 페르소나 채팅에 묻고, 받은 답을 통째로 `$interview <답변>`에 붙입니다. 정리하고 다음 질문까지 한 번에 나옵니다.
 - `$delegate`는 위임 → 검증 → 과잉 설계 정리 → 커밋까지 합니다. 슬라이스 하나가 끝나면 `/new`.
 - 슬라이스 두 개쯤 끝나면 실제 출력을 페르소나에게 한 번 보여 주고 반응을 받습니다.

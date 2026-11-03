@@ -188,11 +188,35 @@ class InstallationTest(unittest.TestCase):
         for skill in skills.glob("*/SKILL.md"):
             text = skill.read_text()
             self.assertIn("disable-model-invocation: true", text.split("---", 2)[1])
+            self.assertIn("argument-hint: ", text.split("---", 2)[1])
             self.assertFalse((skill.parent / "agents/openai.yaml").exists())
         for path in self.project.rglob("*.md"):
             self.assertNotRegex(path.read_text(), r"AGENTS\.md|\.agents/|\$(?:kickoff|interview|spec|delegate|wrapup)\b|/new\b")
+            self.assertNotIn("사용 가능한 서브에이전트 도구", path.read_text())
+        self.assertIn('"${CLAUDE_SKILL_DIR}/templates/docs/."', (skills / "kickoff/SKILL.md").read_text())
+        self.assertIn("Agent 도구(general-purpose)", (skills / "delegate/SKILL.md").read_text())
         self.assertTrue((skills / "spec/module-claude.template.md").is_file())
         self.assert_links_exist(skills)
+
+    def test_python_cache_is_neither_installed_nor_packed(self):
+        repo = self.base / "cache source"
+        shutil.copytree(ROOT / "harness", repo / "harness")
+        (repo / "scripts").mkdir()
+        for name in ("install.sh", "install.py", "pack.sh"):
+            shutil.copy2(ROOT / "scripts" / name, repo / "scripts" / name)
+        cache = repo / "harness/.agents/skills/delegate/scripts/__pycache__"
+        cache.mkdir()
+        (cache / "tmux_codex.cpython-310.pyc").write_bytes(b"\xa7\x0d\r\n\x00binary")
+        for tool in ("codex", "claude", "claude-commands"):
+            with self.subTest(tool=tool):
+                self.project = self.base / ("cache " + tool)
+                self.project.mkdir()
+                self.install("--tool", tool, script=repo / "scripts/install.sh")
+                self.assertEqual([p for p in self.project.rglob("*") if "__pycache__" in p.parts], [])
+        result = subprocess.run(["bash", str(repo / "scripts/pack.sh")], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        with zipfile.ZipFile(repo / "dist/harness.zip") as archive:
+            self.assertEqual([n for n in archive.namelist() if "__pycache__" in n or n.endswith(".pyc")], [])
 
     def test_legacy_commands_resolve_supporting_files(self):
         self.install("--tool", "claude-commands")

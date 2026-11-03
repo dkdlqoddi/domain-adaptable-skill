@@ -16,23 +16,41 @@ RUNNER = next((ROOT / "harness").glob(".*/skills/delegate/scripts/tmux_codex.py"
 TMUX = shutil.which("tmux")
 
 
+def load_runner():
+    spec = importlib.util.spec_from_file_location("tmux_codex", RUNNER)
+    runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(runner)
+    return runner
+
+
 class WorkerTest(unittest.TestCase):
-    def test_worker_keeps_prompt_literal_and_records_cli_failure(self):
-        spec = importlib.util.spec_from_file_location("tmux_codex", RUNNER)
-        runner = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(runner)
+    def run_worker(self, returncode, reported):
+        runner = load_runner()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             prompt = "여러 줄\n$HOME $(touch bad) `touch bad` ' \"\n"
             (path / "prompt.txt").write_text(prompt, encoding="utf-8")
-            (path / "run.json").write_text(json.dumps({"codex": "/fake/codex", "project": directory}))
-            with mock.patch.object(runner.subprocess, "run", return_value=mock.Mock(returncode=7)) as call:
-                self.assertEqual(runner.run_worker(path), 7)
+            (path / "run.json").write_text(json.dumps({"codex": "/fake/codex", "project": directory,
+                                                       "report": str(path / "report.md")}))
+            if reported:
+                (path / "report.md").write_text("STATUS: COMPLETE\n검증 통과\n", encoding="utf-8")
+            with mock.patch.object(runner.subprocess, "run", return_value=mock.Mock(returncode=returncode)) as call, \
+                    mock.patch.object(runner.time, "sleep") as hold, mock.patch("sys.stdout"):
+                self.assertEqual(runner.run_worker(path), returncode)
             self.assertEqual(call.call_args[0][0],
-                             ["/fake/codex", "--yolo", "--no-alt-screen", "-C", directory, prompt])
+                             ["/fake/codex", "exec", "--yolo", "-C", directory, prompt])
             self.assertNotIn("shell", call.call_args[1])
-            self.assertEqual(json.loads((path / "exit.json").read_text())["exit_code"], 7)
-            self.assertFalse((path / "report.md").exists())
+            self.assertIs(call.call_args[1]["stdin"], runner.subprocess.DEVNULL)
+            self.assertEqual(json.loads((path / "exit.json").read_text())["exit_code"], returncode)
+            return runner, hold
+
+    def test_worker_keeps_prompt_literal_and_holds_screen_after_cli_failure(self):
+        runner, hold = self.run_worker(7, reported=False)
+        hold.assert_called_once_with(runner.HOLD_SECONDS)
+
+    def test_worker_with_report_and_normal_exit_closes_immediately(self):
+        _, hold = self.run_worker(0, reported=True)
+        hold.assert_not_called()
 
 
 @unittest.skipUnless(TMUX, "tmux가 없어 실제 tmux 통합 검사 생략 (가짜 Codex 사용)")
@@ -66,6 +84,7 @@ progress = shlex.split(next(line.split(": ", 1)[1] for line in prompt.splitlines
                            if line.startswith("진행 명령: ")))
 (report.parent / "argv.json").write_text(json.dumps({"args": sys.argv[1:], "cwd": os.getcwd()}))
 if "FAIL_CLI" in prompt:
+    print("fake codex: 로그인이 필요합니다", flush=True)
     sys.exit(9)
 subprocess.run(progress + ["--phase", "implementing", "--message", "샘플 구현 중"], check=True)
 print("worker output: implementing", flush=True)
@@ -129,9 +148,10 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
             self.wait_file(report)
             captured = json.loads((report.parent / "argv.json").read_text())
             self.assertEqual(captured["cwd"], str(self.project))
-            self.assertEqual(captured["args"][:4], ["--yolo", "--no-alt-screen", "-C", str(self.project)])
+            self.assertEqual(captured["args"][:4], ["exec", "--yolo", "-C", str(self.project)])
             self.assertIn(body, captured["args"][4])
             self.assertIn(self.instructions, captured["args"][4])
+            self.assertIn("사용자 입력을 기다리지 마라", captured["args"][4])
             self.assertEqual(captured["args"][4], (report.parent / "prompt.txt").read_text())
         runs = self.project / ".git/harness-runs"
         before = sorted(runs.iterdir())
@@ -218,15 +238,74 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
         self.assertEqual(self.status()["runs"], [])
         self.assertFalse((self.project / ".git/harness-runs").exists())
 
-    def test_cli_failure_does_not_create_success_report(self):
+    def test_cli_failure_keeps_error_screen_for_parent(self):
         run = self.launch("S3", "FAIL_CLI")
         directory = Path(run["run_dir"])
         self.wait_file(directory / "exit.json")
         self.assertEqual(json.loads((directory / "exit.json").read_text())["exit_code"], 9)
         self.assertFalse(Path(run["report"]).exists())
-        row = self.status()["runs"][0]
+        deadline = time.monotonic() + 10
+        while True:
+            row = self.status("--id", "S3", "--tail", "20")["runs"][0]
+            if "[harness]" in row["output_tail"] or time.monotonic() > deadline:
+                break
+            time.sleep(0.05)
         self.assertEqual(row["state"], "FAILED")
         self.assertEqual(row["exit"]["exit_code"], 9)
+        self.assertTrue(row["session_present"])
+        self.assertIn("fake codex: 로그인이 필요합니다", row["output_tail"])
+        self.assertIn("Codex 종료 코드 9", row["output_tail"])
+
+    def test_wait_returns_on_change_timeout_and_completion(self):
+        run = self.launch("S1", "WAIT_REPORT")
+        directory = Path(run["run_dir"])
+        self.wait_file(directory / "ready")
+        quick = ("wait", "--project", str(self.project), "--interval", "0.05")
+        idle = self.command(*quick, "--timeout", "1")
+        self.assertEqual((idle["changed"], idle["running"], idle["timed_out"]), ([], ["S1"], True))
+        self.assertEqual(idle["runs"][0]["output_tail"], "")
+        # 같은 단계·메시지를 다시 게시한 것(생존 신호)은 변화가 아니다.
+        self.command("progress", "--run-dir", str(directory), "--phase", "implementing", "--message", "샘플 구현 중")
+        self.assertTrue(self.command(*quick, "--timeout", "1")["timed_out"])
+        waiting = subprocess.Popen([sys.executable, "-B", str(RUNNER), *quick, "--timeout", "10"],
+                                   env=self.env, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(0.3)
+        self.command("progress", "--run-dir", str(directory), "--phase", "verifying", "--message", "검증 중")
+        output, error = waiting.communicate(timeout=15)
+        self.assertEqual(waiting.returncode, 0, error)
+        woke = json.loads(output)
+        self.assertEqual((woke["changed"], woke["timed_out"]), (["S1"], False))
+        self.assertEqual(woke["runs"][0]["progress"]["phase"], "verifying")
+        (directory / "finish").touch()
+        self.wait_file(Path(run["report"]))
+        started = time.monotonic()
+        done = self.command(*quick, "--timeout", "30", "--tail", "5")
+        self.assertLess(time.monotonic() - started, 10)
+        self.assertEqual((done["running"], done["timed_out"]), ([], False))
+        self.assertEqual(done["runs"][0]["state"], "REPORTED_COMPLETE")
+        self.assertIn("worker output", done["runs"][0]["output_tail"])
+
+    def test_root_rules_are_passed_once_and_codex_rules_are_not_repeated(self):
+        (self.project / "CLAUDE.md").write_text("클로드 루트 규칙\n", encoding="utf-8")
+        (self.project / "AGENTS.md").write_text("에이전트 루트 규칙\n", encoding="utf-8")
+        brief = self.project / "S5.md"
+        brief.write_text("작업", encoding="utf-8")
+        run = self.command("start", "--project", str(self.project), "--id", "S5", "--brief", brief.name,
+                           "--instruction", "AGENTS.md", "--instruction", "CLAUDE.md", "--instruction", "rules.md")
+        self.assertEqual(run["instructions"], [str(self.project / "CLAUDE.md"), str(self.project / "rules.md")])
+        prompt = (Path(run["run_dir"]) / "prompt.txt").read_text(encoding="utf-8")
+        self.assertEqual(prompt.count("클로드 루트 규칙"), 1)
+        self.assertEqual(prompt.count(self.instructions), 1)
+        self.assertNotIn("에이전트 루트 규칙", prompt)
+
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root는 읽기 전용 권한을 무시함")
+    def test_unwritable_git_directory_explains_sandbox_escalation(self):
+        git_dir = self.project / ".git"
+        git_dir.chmod(0o555)
+        self.addCleanup(git_dir.chmod, 0o755)
+        result = self.launch("S6", expected=1)
+        self.assertIn("권한 상승", result.stderr)
+        self.assertFalse((git_dir / "harness-runs").exists())
 
     def test_missing_material_fails_before_creating_run(self):
         (self.project / "rules.md").unlink()

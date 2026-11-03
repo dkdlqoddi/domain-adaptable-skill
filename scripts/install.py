@@ -13,20 +13,38 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "harness"
 SKILLS = SOURCE / ".agents/skills"
 COMMANDS = ("kickoff", "interview", "spec", "delegate", "wrapup")
+# Claude 슬래시 메뉴의 인자 안내. Codex 원본에는 해당 필드가 없어 변환 때만 넣는다(main 원본과 같은 값).
+ARGUMENT_HINTS = {
+    "kickoff": "[지시문 경로 (기본 README.md)] [마감 시각 예: 13:00 | 남은 시간 예: 3h45m]",
+    "interview": "[페르소나의 답변 | quiz] — 없으면 첫 질문",
+    "spec": "(인자 없음)",
+    "delegate": "<슬라이스 ID 또는 한 줄 설명> [--parallel | --serial]",
+    "wrapup": "[check | retro] — 없으면 check → retro·전체 정리 → 퀴즈",
+}
+TEMPLATE_COPY = '".claude/skills/kickoff/templates/docs/."'
+
+
+def skip_source(path):
+    """실행 캐시는 배포하지 않는다(.gitignore에 가려 보이지 않아도 설치 키트에 섞일 수 있다)."""
+    return "__pycache__" in path.parts or path.suffix in (".pyc", ".pyo")
 
 
 def claude_text(text):
     """Codex 원본을 Claude 호환 표기·지침으로 바꾼다."""
     if text.startswith("---\n"):
         _, frontmatter, body = text.split("---\n", 2)
-        text = "---\n" + frontmatter + "disable-model-invocation: true\n---\n" + body
+        name = re.search(r"^name:\s*(\S+)", frontmatter, re.M).group(1)
+        hint = 'argument-hint: "' + ARGUMENT_HINTS[name] + '"\n' if name in ARGUMENT_HINTS else ""
+        text = "---\n" + frontmatter + "disable-model-invocation: true\n" + hint + "---\n" + body
     for name in COMMANDS:
         text = re.sub(r"\$" + name + r"\b", lambda _: "/" + name, text)
     return (text.replace(".agents/skills/", ".claude/skills/")
             .replace("AGENTS.md", "CLAUDE.md")
             .replace("module-agents.template.md", "module-claude.template.md")
             .replace("$스킬명", "/스킬명")
-            .replace("/new", "/clear"))
+            .replace("/new", "/clear")
+            .replace("사용 가능한 서브에이전트 도구", "Agent 도구(general-purpose)")
+            .replace(TEMPLATE_COPY, '"${CLAUDE_SKILL_DIR}/templates/docs/."'))
 
 
 def command_text(text, source):
@@ -37,7 +55,8 @@ def command_text(text, source):
             return match.group(0)
         target = claude_text(Path(os.path.relpath((source.parent / link).resolve(), SOURCE)).as_posix())
         return "[" + (target if label == link else label) + "](" + target + ")"
-    return re.sub(r"\[([^\]]*)\]\(([^)]+)\)", relocate, text)
+    return re.sub(r"\[([^\]]*)\]\(([^)]+)\)", relocate, text).replace(
+        "${CLAUDE_SKILL_DIR}", ".claude/skills/" + source.parent.name)
 
 
 def rule_path(destination, tool, data):
@@ -60,7 +79,7 @@ def installation_files(destination, tool):
     files = []
     prefix = Path(".agents/skills" if tool == "codex" else ".claude/skills")
     for source in sorted(SKILLS.rglob("*")):
-        if not source.is_file():
+        if not source.is_file() or skip_source(source):
             continue
         relative = source.relative_to(SKILLS)
         data = source.read_bytes()
