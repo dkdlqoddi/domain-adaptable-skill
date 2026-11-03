@@ -121,9 +121,10 @@ class InstallationTest(unittest.TestCase):
                     self.assertEqual((self.project / "docs" / name).read_text(), "사용자가 이미 쓴 내용: " + name)
                 installed = self.project / prefix / "skills/delegate/scripts/tmux_codex.py"
                 self.assertEqual(installed.read_bytes(), source.read_bytes())
-                result = subprocess.run(["python3", "-B", str(installed), "start", "--help"],
-                                        text=True, capture_output=True)
-                self.assertEqual(result.returncode, 0, result.stderr)
+                for command in ("start", "status", "progress"):
+                    result = subprocess.run(["python3", "-B", str(installed), command, "--help"],
+                                            text=True, capture_output=True)
+                    self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_codex_preserves_conflicting_agents_by_default(self):
         self.write("AGENTS.md", "user agent rules\n")
