@@ -53,7 +53,7 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 
 | 상황 | 대응 (Codex는 스킬 앞의 `/`를 `$`로) |
 |---|---|
-| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + `codex --yolo`에 브리프 전문 전달. 독립 작업 기본 2개, 최대 3개 |
+| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + `codex --yolo`에 브리프 전문 전달. 독립 작업 기본 2개, 최대 6개 |
 | 순차 | `/delegate S1 --serial`. 선행 의존성 미완료·쓰기 파일·검증 자원 충돌 시에도 순차 |
 | 새 요구 | `/interview <답>` → `/spec` → `/delegate <새 ID>` |
 | 버그 | 최소 재현 → 원인·파일·검증 3줄 → 최소 수정 → 재검증 |
@@ -64,7 +64,14 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 | 검증만 / 복습만 | `/wrapup check` / `/interview quiz` |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성은 유지 |
 
-병렬 세션의 보고를 모두 회수하고 작업자를 멈춘 뒤 루트가 문서·검증·커밋을 처리한다. [실행·회수 명령](../harness/.claude/skills/delegate/tmux.md)
+부모는 아래 명령을 30~60초 간격으로 실행해 단계·갱신 시각·최근 출력·차단·실패를 확인한다. `--id S1`로 조회 범위를 좁힐 수 있다.
+
+```bash
+python3 .claude/skills/delegate/scripts/tmux_codex.py status --project "$PWD" --tail 20
+```
+
+Codex 설치에서는 `.claude/skills/`를 `.agents/skills/`로 바꾼다.
+병렬 세션의 보고를 모두 회수하고 작업자를 멈춘 뒤 루트가 문서·검증·커밋을 처리한다. `REPORTED_COMPLETE`만으로 DONE 처리하지 않는다. [실행·회수 명령](../harness/.claude/skills/delegate/tmux.md)
 `KNOWLEDGE.md`: 필수 개념·알고리즘·자료구조·실행 추적·복잡도·대안·한계. `QUIZ.md`: 문제, `QUIZ-ANSWERS.md`: 풀이·근거·채점.
 퀴즈는 4문항씩, 절반 이상 서술·계산·추적, 문항별 0~2점(기본 /24, 마무리 /32)이다. 약점 보충 최대 2문항. 학습 기록만 바꾸며 제출을 막지 않는다.
 
