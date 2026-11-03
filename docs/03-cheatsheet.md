@@ -73,7 +73,7 @@ codex
 | 스킬 미인식 | 과제 루트의 `.agents/skills/` 확인 → `/skills` 또는 `$` → 필요하면 재시작 |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성 유지 |
 
-부모는 셸 `sleep`으로 주기 조회하지 않고 아래 명령으로 변화가 생길 때까지 기다린다(최대 90초, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
+부모는 셸 `sleep`으로 주기 조회하지 않고 아래 명령으로 보고·실패·차단이 생길 때까지 기다린다(최대 90초, 단계 갱신으로는 깨지 않음, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
 
 ```bash
 python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 90

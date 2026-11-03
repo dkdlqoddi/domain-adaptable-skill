@@ -150,18 +150,23 @@ def status(args):
     return 0
 
 
-def signature(row):
-    progress_info = row.get("progress") or {}
-    exit_info = row.get("exit") or {}
-    return (row.get("state"), progress_info.get("phase"), progress_info.get("message"),
-            exit_info.get("exit_code"), row.get("session_present"))
+def phase(row):
+    return (row.get("progress") or {}).get("phase")
+
+
+def needs_parent(old, row):
+    """부모를 깨울 일: 새 실행, 상태 변화(보고·실패·보고 없는 종료), blocked 진입."""
+    if old is None or old.get("run_dir") != row.get("run_dir") or old.get("state") != row.get("state"):
+        return True
+    return phase(row) == "blocked" and phase(old) != "blocked"
 
 
 def wait(args):
-    """실행 중인 작업의 상태·단계·메시지가 바뀌거나, 실행 중인 작업이 없거나, 시간이 다 될 때까지 기다린다.
+    """부모를 깨울 일이 생기거나, 실행 중인 작업이 없거나, 시간이 다 될 때까지 기다린다.
 
     셸 sleep으로 주기 조회하면 막히거나(Claude Code) 매번 전체 출력이 컨텍스트에 쌓인다.
-    같은 단계·메시지의 갱신 시각만 바뀐 것은 변화로 보지 않는다.
+    단계·메시지 갱신으로는 깨우지 않는다. 작업자가 많아도 깨는 횟수가 작업 결과 수에 가깝게 유지되고,
+    진행 상황은 시간 초과 때 runs의 progress로 한꺼번에 보인다.
     """
     check_tail(args.tail)
     if not 1 <= args.timeout <= 3600 or not 0 < args.interval <= 60:
@@ -170,12 +175,12 @@ def wait(args):
     tmux = require("tmux")
     deadline = time.monotonic() + args.timeout
     _, rows, errors = collect(project, runs, tmux, args.id, 0)
-    before = {row["id"]: signature(row) for row in rows}
+    before = {row["id"]: row for row in rows}
     changed = []
     while any(row.get("state") == "RUNNING" for row in rows) and time.monotonic() < deadline:
         time.sleep(min(args.interval, max(0.0, deadline - time.monotonic())))
         _, rows, errors = collect(project, runs, tmux, args.id, 0)
-        changed = sorted(row["id"] for row in rows if before.get(row["id"]) != signature(row))
+        changed = sorted(row["id"] for row in rows if needs_parent(before.get(row["id"]), row))
         if changed:
             break
     if args.tail:
@@ -317,7 +322,7 @@ def main():
     inspect.add_argument("--project", type=Path, default=Path.cwd())
     inspect.add_argument("--id", action="append", help="조회할 슬라이스 (반복 가능, 기본 전체)")
     inspect.add_argument("--tail", type=int, default=10, help="최근 터미널 출력 줄 수 (0~200, 기본 10)")
-    block = commands.add_parser("wait", help="부모용: 변화·전체 종료·시간 초과까지 기다린 뒤 상태 JSON")
+    block = commands.add_parser("wait", help="부모용: 보고·실패·차단·전체 종료·시간 초과까지 기다린 뒤 상태 JSON")
     block.add_argument("--project", type=Path, default=Path.cwd())
     block.add_argument("--id", action="append", help="기다릴 슬라이스 (반복 가능, 기본 전체)")
     block.add_argument("--timeout", type=int, default=90, help="최대 대기 초 (1~3600, 기본 90)")

@@ -26,10 +26,10 @@ python3 .agents/skills/delegate/scripts/tmux_codex.py start \
 ```bash
 python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 90
 ```
-- 셸 `sleep`으로 주기를 맞추지 않는다. `wait`는 실행 중인 작업의 상태·단계·메시지가 바뀌거나, 실행 중인 작업이 없거나, `--timeout`초(기본 90)가 지나면 돌아온다. 도구의 명령 제한 시간은 그보다 길게 둔다. 돌아올 때마다 바뀐 점만 사용자에게 요약하고, 실행 중인 작업이 남았으면 다시 `wait`한다. 그사이 독립적인 읽기·검토를 해도 된다.
-- JSON의 `changed`는 바뀐 작업, `running`은 아직 실행 중인 작업, `timed_out`은 변화 없이 시간이 다 된 경우다. `runs`에는 슬라이스별 최신 실행의 `state`, `session_present`, `progress`(단계·메시지·UTC 갱신 시각), `progress_age_seconds`, `exit`, 보고 경로가 있다. `--id S1 --id S2`로 범위를 좁힌다.
+- 셸 `sleep`으로 주기를 맞추지 않는다. `wait`는 작업의 상태가 바뀌거나(보고 도착·실패·보고 없는 종료) 작업이 `blocked` 단계에 들어가거나, 실행 중인 작업이 없거나, `--timeout`초(기본 90)가 지나면 돌아온다. 단계·메시지 갱신으로는 깨지 않아 작업자가 많아도 자주 깨지 않는다. 도구의 명령 제한 시간은 그보다 길게 둔다. 돌아올 때마다 바뀐 점만 사용자에게 요약하고(시간 초과면 작업별 현재 단계를 한 줄로), 실행 중인 작업이 남았으면 다시 `wait`한다. 그사이 독립적인 읽기·검토를 해도 된다.
+- JSON의 `changed`는 상태가 바뀌었거나 `blocked`에 들어간 작업, `running`은 아직 실행 중인 작업, `timed_out`은 그런 일 없이 시간이 다 된 경우다. `runs`에는 슬라이스별 최신 실행의 `state`, `session_present`, `progress`(단계·메시지·UTC 갱신 시각), `progress_age_seconds`, `exit`, 보고 경로가 있다. `--id S1 --id S2`로 범위를 좁힌다.
 - 터미널 출력은 기본으로 싣지 않는다. 진행이 오래 멈췄거나 `FAILED`·`STOPPED`이면 그 작업만 `status --id S1 --tail 40`으로 본다(최대 200줄).
-- 작업자는 초기 프롬프트의 `progress --run-dir ... --phase implementing --message '현재 상황'` 명령으로 시작·구현·검증·차단 때 갱신한다. 단계는 `planning`, `implementing`, `verifying`, `blocked`. 긴 작업은 가능한 도구 호출 사이에 약 60초마다 갱신한다. 같은 단계·메시지의 재게시는 `wait`가 변화로 보지 않는다.
+- 작업자는 초기 프롬프트의 `progress --run-dir ... --phase implementing --message '현재 상황'` 명령으로 시작·구현·검증·차단 때 갱신한다. 단계는 `planning`, `implementing`, `verifying`, `blocked`. 긴 작업은 가능한 도구 호출 사이에 약 60초마다 갱신한다. 이 갱신은 `wait`를 깨우지 않고 시간 초과 때 `runs`의 `progress`로 보인다(`blocked` 진입만 바로 깨운다).
 - `progress_age_seconds`는 마지막 보고 이후 시간이며 프로세스 생존 신호가 아니다. `session_present`는 세션 존재 여부이며 완료 근거가 아니다. 무응답만으로 완료·실패를 추정하지 않는다.
 - `RUNNING`은 보고 전 실행 중, `REPORTED_COMPLETE`·`REPORTED_BLOCKED`는 작업자 보고 도착, `FAILED`는 CLI 비정상 종료, `STOPPED`는 보고 없이 종료된 실행이다. `INVALID_REPORT`·`UNREADABLE`·`errors`·`output_error`도 확인한다. 보고 도착은 루트의 검증·DONE 판정을 대신하지 않는다.
 
