@@ -31,7 +31,7 @@ argument-hint: "<슬라이스 ID 또는 한 줄 설명> [--parallel | --serial]"
    - 후보가 있으면 한 번에 묶어 제거를 제안(추천 표시) → 사람이 고른 것만 제거 → 검증 재실행 → 거절·축소한 AI 제안으로 결정 기록. 없으면 바로 8번.
 8. **마무리**:
    - `git status --short --untracked-files=all`을 시작 상태와 비교한다(병렬이면 범위를 합쳐서). 범위 밖 변경은 보존하고, 새로 생긴 변경의 출처가 불명확하면 경로를 보고한다. 임의로 되돌리지 않는다.
-   - 실제 구현·테스트를 근거로 [../interview/learning.md](../interview/learning.md)의 `docs/KNOWLEDGE.md`에 알고리즘·복잡도·경계 사례를 갱신한다. 바뀐 내용에 의존하는 기존 퀴즈·해설은 함께 정정한다. 작업자 보고만으로 사실을 확정하지 않는다.
+   - 실제 구현·테스트를 근거로 [../interview/learning.md](../interview/learning.md)의 `docs/KNOWLEDGE.md`에 전체 정리·알고리즘·복잡도·경계 사례를 갱신한다. 관련 퀴즈·해설도 갱신하되 이미 푼 회차의 답·점수는 보존하고 변경 내용을 새 회차·개정으로 연결한다. 작업자 보고만으로 사실을 확정하지 않는다.
    - `docs/TASKS.md` 상태: DONE, 또는 BLOCKED + 사유(계약 변경 요청이면 BLOCKER 표로). 병렬 실행 중 공유 문서 수정은 루트만 한다.
    - DONE이면 [git-workflow.md](git-workflow.md)의 파일별 검토·커밋 절차로 `"<ID>: <슬라이스 한 줄>"` 커밋. 기존 staged 변경은 건드리지 않고 커밋 보류를 명시한다.
 

@@ -1,13 +1,13 @@
 ---
 name: wrapup
-description: 제출 전 통합 검증·정리·실행 README와 RETRO를 작성한다. 필수 지식·실제 알고리즘 문서와 16문항 심화 퀴즈·해설로 사후 Q&A를 준비한다. 퀴즈는 건너뛸 수 있다.
+description: 제출 전 통합 검증·정리·실행 README와 RETRO를 작성한다. 문제 정의부터 실제 구현·검증·한계까지 전체 내용을 정리하고, 16문항 심화 퀴즈·해설로 사용자의 이해를 점검한다. 퀴즈는 건너뛸 수 있다.
 disable-model-invocation: true
-argument-hint: "[check | retro] — 없으면 check → retro → 퀴즈"
+argument-hint: "[check | retro] — 없으면 check → retro·전체 정리 → 퀴즈"
 ---
 
 # /wrapup — 마무리와 복기
 
-사용: `/wrapup [check | retro]` — 인자가 없으면 check → retro → 퀴즈를 진행한다.
+사용: `/wrapup [check | retro]` — 인자가 없으면 check → retro·전체 정리 → 퀴즈를 진행한다.
 
 ## 왜
 평가는 결과물만이 아니라 사후 Q&A(상위권은 면접)에서 "내가 만든 것을 내가 이해하고 있는가"를 본다.
@@ -27,14 +27,14 @@ argument-hint: "[check | retro] — 없으면 check → retro → 퀴즈"
 3. **실행 README**: 프로젝트 README에 **설치 → 실행 → 확인** 3단계가 있는지. 없으면 10줄 이내로 만든다. 평가자가 그대로 따라 할 수 있어야 한다.
 4. **저장소 전체 정리**:
    - `git ls-files`로 파일 목록만 보고 미사용 파일·모듈, 구현 하나뿐인 추상화, 설정만 있고 안 쓰는 것, 샘플·데모 코드 잔재를 찾는다.
-   - `grep -rn "TODO\|FIXME\|console.log\|print(\|lorem\|placeholder\|shortcut:" --exclude-dir={node_modules,.git,dist} -I`로 표식을 모은다.
+   - `rg -n 'TODO|FIXME|console\.log|print\(|lorem|placeholder|shortcut:' -g '!node_modules/**' -g '!.git/**' -g '!dist/**'`로 표식을 모은다(`rg`가 없으면 `grep` 사용).
    - `git status --short`로 추적되지 않는 잔재(`__pycache__`, 빌드 산출물, 임시 파일)도 본다.
    - 기존 미커밋 작업은 보존한다. 삭제 후보는 묶어서 한 번 승인 → 지운 것은 결정으로 기록 → 코드가 바뀌면 관련 검증 재실행. `shortcut:` 주석은 retro 7절로 넘긴다.
 5. **커밋**: [../delegate/git-workflow.md](../delegate/git-workflow.md)에 따라 검토한 변경 파일만 `"wrapup: <한 줄>"`로 커밋한다. 기존 staged 변경이 있으면 자동 커밋은 보류한다.
 
 ## retro → `docs/RETRO.md`
-읽기: `docs/SPEC.md`, `docs/DECISIONS.md`, `docs/TASKS.md`, `docs/GLOSSARY.md`, (있으면) `docs/CONTRACT.md`의 모듈 표와 `docs/KNOWLEDGE.md`. 핵심 알고리즘의 실제 함수·호출부·테스트를 필요한 만큼 확인한다.
-[../interview/learning.md](../interview/learning.md)에 따라 KNOWLEDGE의 필수 지식·알고리즘·복잡도·대안·한계를 실제 코드와 맞추고, **16문항**과 별도 해설을 QUIZ·QUIZ-ANSWERS에 작성한다. 구현되지 않은 P0·실패한 검증은 그대로 명시한다.
+읽기: `docs/SPEC.md`, `docs/DECISIONS.md`, `docs/TASKS.md`, `docs/GLOSSARY.md`, `docs/domain/README.md`와 관련 제약·성공 기준, 실행 README, (있으면) `docs/CONTRACT.md`와 `docs/KNOWLEDGE.md`. 핵심 알고리즘의 실제 함수·호출부·테스트를 필요한 만큼 확인한다.
+[../interview/learning.md](../interview/learning.md)의 **마무리 전체 정리와 범위 확인**을 따른다. KNOWLEDGE 0절의 일곱 주제를 실제 코드·검증 결과에 맞추고, 모든 P0와 주제를 QUIZ 범위표의 문항·근거에 연결한다. **16문항**과 별도 해설을 작성하며, 구현되지 않은 P0·실패한 검증·미확인을 요약에서도 명시한다.
 형식 고정:
 
 ```
@@ -47,15 +47,15 @@ argument-hint: "[check | retro] — 없으면 check → retro → 퀴즈"
 ## 6. 거절하거나 축소한 AI 제안 (목록과 이유)
 ## 7. 알고 쓴 지름길과 한계 (shortcut 목록, 바꿀 조건)
 ## 8. 시간이 더 있다면 (우선순위 3개)
-## 9. 필수 지식과 심화 문답 (KNOWLEDGE·QUIZ·QUIZ-ANSWERS 참조, 알고리즘·한계·검증의 핵심 요약)
+## 9. 전체 내용 정리와 이해 점검 (KNOWLEDGE 0절의 7문장 요약 + QUIZ 범위표·별도 해설·복습 위치)
 ```
 끝나면 같은 Git 절차로 `docs/RETRO.md`, `docs/KNOWLEDGE.md`, `docs/QUIZ.md`, `docs/QUIZ-ANSWERS.md`와 이번 검증으로 바뀐 TASKS만 검토해 `"retro"`로 커밋한다. 보류 시 사유를 알린다.
 
 ## 퀴즈 (retro 작성 뒤, 커밋 보류와 무관)
-[../interview/grill.md](../interview/grill.md)의 요약 → 작성한 16문항을 4문항씩 → 채점을 진행한다(위에서 확인한 자료와 만든 문서는 재작업하지 않는다). 사람이 "그만"이면 남은 문제는 문서에 두고 중단한다. 제출·푸시와는 무관하다.
-채점으로 바뀐 QUIZ·QUIZ-ANSWERS는 같은 Git 절차로 별도 검토·커밋하거나 보류 사유를 남긴다. 점수나 미완료 때문에 기존 제출을 지연하지 않는다.
+[../interview/grill.md](../interview/grill.md)의 전체 요약 → 작성한 16문항을 4문항씩 → 채점을 진행한다(위에서 확인한 자료와 만든 문서는 재작업하지 않는다). 마지막 문항은 전체 흐름을 자기 말로 설명하고 달라진 조건에 적용하는 문제다. 퀴즈를 건너뛰거나 "그만"이면 요약·문제·해설과 진행 위치를 문서에 남기고 중단한다. 제출·푸시와는 무관하다.
+채점·복습 기록으로 바뀐 KNOWLEDGE·QUIZ·QUIZ-ANSWERS는 같은 Git 절차로 별도 검토·커밋하거나 보류 사유를 남긴다. 점수나 미완료 때문에 기존 제출을 지연하지 않는다.
 
 ## 출력 (메시지마다 15줄 이내)
 - check: 검증·화면·README·정리 결과를 한 줄씩. 삭제 후보가 있으면 묶어서 한 번 묻는다.
 - retro: `RETRO.md 커밋: <해시 또는 보류 사유>` 한 줄 → 이어서 퀴즈.
-- 끝(채점 뒤) 마지막 줄: "RETRO.md와 KNOWLEDGE.md를 읽고, 약점은 QUIZ-ANSWERS.md의 근거 코드·테스트로 확인하세요."
+- 끝: 실제로 되는 것·남은 한계, 학습 문서 경로, 답한 문항 수·점수(미응답은 미채점), 주제별 약점·다음 복습 행동을 안내한다. 마지막 줄: "KNOWLEDGE.md 0절로 전체 흐름을 설명해 보고, 약점은 QUIZ-ANSWERS.md의 근거 코드·테스트로 확인하세요."
