@@ -1,6 +1,7 @@
 """설치 충돌·보존·호환 형식·ZIP 배포를 임시 프로젝트에서 검증한다."""
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -48,10 +49,10 @@ class InstallationTest(unittest.TestCase):
         templates = ROOT / "harness/.claude/skills/kickoff/templates/docs"
         self.assertEqual(snapshot(self.project / "docs"), snapshot(templates))
         rules = (self.project / "CLAUDE.md").read_text(encoding="utf-8")
-        for name in ("fable", "opus", "sonnet"):
+        for name in ("opus", "sonnet"):
             self.assertIn("`" + name + "`", rules)
         for path in self.project.rglob("*.md"):
-            self.assertNotIn("gpt-6", path.read_text(encoding="utf-8"))
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"\bgpt-\d")
         self.install()
         self.assertEqual(snapshot(self.project), before)
 
@@ -68,7 +69,7 @@ class InstallationTest(unittest.TestCase):
                     self.assertEqual((self.project / "docs" / name).read_text(), "사용자가 이미 쓴 내용: " + name)
                 installed = self.project / prefix / "skills/delegate/scripts/tmux_codex.py"
                 self.assertEqual(installed.read_bytes(), source.read_bytes())
-                for command in ("start", "status", "progress"):
+                for command in ("start", "status", "wait", "progress", "usage"):
                     result = subprocess.run(["python3", "-B", str(installed), command, "--help"],
                                             text=True, capture_output=True)
                     self.assertEqual(result.returncode, 0, result.stderr)
@@ -163,9 +164,26 @@ class InstallationTest(unittest.TestCase):
         for path in self.project.rglob("*.md"):
             self.assertNotRegex(path.read_text(encoding="utf-8"), r"CLAUDE|\.claude|module-claude|\$ARGUMENTS")
             self.assertNotRegex(path.read_text(encoding="utf-8"), r"\b(?:fable|opus|sonnet)\b")
-        rules = (self.project / "AGENTS.md").read_text(encoding="utf-8")
-        for name in ("gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"):
-            self.assertIn("`" + name + "`", rules)
+        text = "\n".join(path.read_text(encoding="utf-8") for path in self.project.rglob("*.md"))
+        self.assertEqual(set(re.findall(r"\bgpt-[\w.-]+", text)),
+                         {"gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-terra", "gpt-6-luna"})
+
+    def test_model_conversion_preserves_distinct_models_with_shared_claude_aliases(self):
+        installer = runpy.run_path(str(ROOT / "scripts/install.py"))
+        self.install("--tool", "codex")
+        text = (self.project / ".agents/skills/delegate/routing.md").read_text(encoding="utf-8")
+        rows = {}
+        for line in text.splitlines():
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if len(cells) == 4 and cells[0].startswith("`"):
+                rows[cells[0].split("`")[1]] = (cells[1].strip("`"), cells[2])
+        self.assertEqual(rows, installer["TIERS"]["codex"])
+        convert = installer["codex_text"]
+        self.assertEqual(convert("`opus` / `sonnet`"), "`gpt-6.1-sol` / `gpt-6-luna`")
+        self.assertEqual(convert("| `fallback` | `opus` | medium | 대체 |"),
+                         "| `fallback` | `gpt-6-sol` | medium | 대체 |")
+        self.assertEqual(convert("| `legacy` | `sonnet` | medium | 국소 수정 |"),
+                         "| `legacy` | `gpt-5.6-terra` | medium | 국소 수정 |")
 
     def test_python_cache_is_neither_installed_nor_packed(self):
         repo = self.base / "cache source"

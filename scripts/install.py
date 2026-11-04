@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """표준 라이브러리만 사용하는 하네스 설치·호환 형식 변환기."""
 import argparse
+import ast
 from datetime import datetime
 import os
 from pathlib import Path
@@ -13,8 +14,21 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "harness"
 SKILLS = SOURCE / ".claude/skills"
 COMMANDS = ("kickoff", "interview", "spec", "delegate", "wrapup")
-# 등급(상·중·하)별 모델 이름. Claude 별칭을 Codex 모델 이름으로 바꾼다(실행기 TIERS와 같은 값).
-MODEL_NAMES = (("fable", "gpt-6-astra"), ("opus", "gpt-6.1-sol"), ("sonnet", "gpt-6-luna"))
+
+
+def worker_tiers():
+    """실행하지 않고 실행기의 등급 상수만 읽는다. 설치기는 fcntl 등에 의존하지 않는다."""
+    source = SKILLS / "delegate/scripts/tmux_codex.py"
+    for node in ast.parse(source.read_text(encoding="utf-8")).body:
+        if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "TIERS"
+                                               for target in node.targets):
+            return ast.literal_eval(node.value)
+    raise ValueError("실행기의 TIERS를 찾을 수 없습니다")
+
+
+TIERS = worker_tiers()
+# 일반 문맥의 별칭은 기본 구현·경량 모델로, 등급표의 중복 별칭은 행의 tier로 복원한다.
+MODEL_NAMES = tuple((TIERS["claude"][tier][0], TIERS["codex"][tier][0]) for tier in ("implement", "light"))
 
 
 def skip_source(path):
@@ -31,6 +45,10 @@ def codex_text(text):
         text = "---\n" + "\n".join(fields) + "\n---\n" + body
     for name in COMMANDS:
         text = re.sub(r"/" + name + r"\b(?!/)", lambda _: "$" + name, text)
+    for tier, (model, _) in TIERS["codex"].items():
+        alias = TIERS["claude"][tier][0]
+        pattern = r"^(\|\s*`" + re.escape(tier) + r"`[^|\n]*\|\s*)`" + re.escape(alias) + r"`"
+        text = re.sub(pattern, lambda match: match[1] + "`" + model + "`", text, flags=re.M)
     for claude_name, codex_name in MODEL_NAMES:
         text = re.sub(r"\b" + claude_name + r"\b", codex_name, text)
     return (text.replace(".claude/skills/", ".agents/skills/")
@@ -156,7 +174,8 @@ def install(destination, tool, force):
     print("완료: 설치 {}개, 동일 파일·기존 docs 보존 {}개 → {}".format(len(pending), skipped, destination))
     if tool != "codex" and (destination / "CLAUDE.md").exists() and (destination / ".claude/CLAUDE.md").exists():
         print("확인: CLAUDE.md와 .claude/CLAUDE.md의 규칙이 충돌하지 않는지 확인하세요.")
-    command = "codex → $kickoff" if tool == "codex" else "claude → /kickoff"
+    command = ("codex -m gpt-6.1-sol -c 'model_reasoning_effort=\"high\"' → $kickoff"
+               if tool == "codex" else "claude --model opus --effort high → /kickoff")
     print("다음: 첫 커밋 뒤 " + command + " README.md <마감 시각, 예: 13:00>")
     return 0
 

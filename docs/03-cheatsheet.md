@@ -9,7 +9,7 @@
 | 설치·첫 커밋 | `harness.zip`을 과제 루트에 올리고 아래 블록. Codex는 주석대로 두 곳, 구버전 Claude는 설치 줄에 `--tool claude-commands` |
 | 충돌 | 기본은 아무것도 쓰지 않고 중단(zip은 남음). `--force`는 지침·스킬을 백업 후 교체. 기존 docs는 항상 보존 |
 | 리허설 (이 PC) | `scripts/install.sh <과제 경로>` 뒤 블록의 `git` 줄부터 |
-| 시작 | 과제 루트에서 `claude --model fable` 또는 `codex -m gpt-6-astra`(상 등급 루트). Codex는 `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
+| 시작 | 과제 루트에서 `claude --model opus --effort high` 또는 `codex -m gpt-6.1-sol -c 'model_reasoning_effort="high"'`. Codex는 `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
 
 ```bash
 HARNESS_KIT=$(mktemp -d)
@@ -34,16 +34,27 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 | 다지기 | 자동 진행 | 자동 진행 | 빈틈 질문 → 요약 → 확인 4문항(파일 없음). 깊은 복습은 `/interview quiz` |
 | 계약 ~1:20 | `/spec` | `$spec` | P0≤3·비목표·입출력 픽스처·검증 명령·쓰기 범위 확정 → 구현 계획 10줄 확인·의견 반영 |
 | 뼈대 | `/delegate S0` | `$delegate S0` | 입력 하나가 끝까지 흐르는 구현·검증·커밋 |
-| 구현 ~3:10 | `/delegate <다음 ID>` → `/clear` | `$delegate <다음 ID>` → `/new` | 마일스톤이면 방식 확인 → 브리프·위임(중 등급)·재검증·회귀·정리·커밋. 커밋(또는 보류 사유)이 docs에 남으면 비우고 다음 슬라이스. P0마다 시연·의견 |
+| 구현 ~3:10 | `/delegate <다음 ID>` → `/clear` | `$delegate <다음 ID>` → `/new` | 마일스톤이면 방식 확인 → 작은 브리프·일반 구현(medium)·재검증·회귀·정리·커밋. 커밋(또는 보류 사유)이 docs에 남으면 비우고 다음 슬라이스. P0마다 시연·의견 |
 | 마무리 3:10~4:00 | `/wrapup` | `$wrapup` | 통합 검증·README·RETRO·전체 내용 정리 → 16문항 |
 
-## 모델 등급 — 상은 루트만
+## 모델 선택 — 설계 high, 일반 구현 medium
 
-| 등급 | 누가 | Claude | Codex | 지정 |
-|---|---|---|---|---|
-| 상 | 루트 | `fable` | `gpt-6-astra` | 시작 옵션·`/model` |
-| 중 | 구현 작업자 | `opus` | `gpt-6.1-sol` | 실행기 기본(`--tier implement`) |
-| 하 | 검증·단순 수정 | `sonnet` | `gpt-6-luna` | `--tier light` |
+| 역할 / tier | Codex | Claude | 추론 |
+|---|---|---|---|
+| 루트(설계) | `gpt-6.1-sol` | `opus` | high |
+| `implement` (기본 구현) | `gpt-6.1-sol` | `opus` | medium |
+| `light` (기계적 수정·추출) | `gpt-6-luna` | `sonnet` | medium |
+| `reason` (복잡한 구현·진단) | `gpt-6.1-sol` | `opus` | high |
+| `fallback` (주 모델 사용 불가·품질을 확인한 반복 구현) | `gpt-6-sol` | `opus` | medium |
+| `legacy` (품질을 확인한 기존 패턴의 국소 수정) | `gpt-5.6-terra` | `sonnet` | medium |
+
+테스트·검색은 도구로 직접 실행한다. 짧은 브리프로 시작하되 필요한 계약·호출부는 추가로 확인하고 DONE 전 P0 수용 조건·오류 처리도 검토한다. 같은 실패를 새 근거 없이 반복하면 `reason`으로 한 번만 재위임하고, 이미 high면 루트가 문맥·범위를 다시 확인한다. [선택 기준](../harness/.claude/skills/delegate/routing.md)
+
+Codex 설치의 관측 토큰(실패·재시도 포함):
+```bash
+python3 .agents/skills/delegate/scripts/tmux_codex.py usage --project "$PWD"
+```
+Claude 설치는 경로를 `.claude/skills/`로 바꾼다. 집계는 Codex 완료 턴만이며 루트·다른 CLI·완료 이벤트 없는 실패 중 사용량은 별도다. 캐시 입력을 합계에 중복 가산하지 않고 `unknown_runs`·`errors`도 확인한다.
 
 ## 인터뷰 사다리 — 한 묶음은 한 칸, 질문 3~5개
 
@@ -61,9 +72,9 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 
 | 상황 | 대응 (Codex는 스킬 앞의 `/`를 `$`로) |
 |---|---|
-| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + 비대화형 작업자(Claude `claude -p --model opus`, Codex `codex exec --yolo -m gpt-6.1-sol`)에 브리프 전문 전달. 독립 작업 기본 2개, 최대 6개 |
+| 병렬 | `/delegate S1 --parallel`(Codex `$delegate S1 --parallel`): tmux + 비대화형 작업자(Claude `claude -p --model opus`, Codex `codex exec --yolo --json -m gpt-6.1-sol`)에 브리프 전문 전달. 기본 호출은 1개, 명시적 병렬은 독립 2개(최대 6개) |
 | 순차 | `/delegate S1 --serial`. 선행 의존성 미완료·쓰기 파일·검증 자원 충돌 시에도 순차 |
-| 검증·단순 수정만 | 실행기 `--tier light`(하 등급 `sonnet`/`gpt-6-luna`) |
+| 검증·단순 수정만 | 테스트는 직접, 정해진 치환·추출만 `--tier light`(medium) |
 | 새 요구 | `/interview <답>` → `/spec` → `/delegate <새 ID>` |
 | 버그 | 최소 재현 → 원인·파일·검증 3줄 → 최소 수정 → 재검증 |
 | 기존 변경 | 시작 상태와 비교해 보존. 기존 staged가 있으면 자동 스테이징·커밋 보류, 이유·경로 확인 |
@@ -74,10 +85,10 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 | 검증만 / 복습만 | `/wrapup check` / `/interview quiz` |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성은 유지 |
 
-부모는 셸 `sleep`으로 주기 조회하지 않고(Claude Code는 30초 이상의 `sleep`을 막는다) 아래 명령으로 보고·실패·차단이 생길 때까지 기다린다(최대 90초, 단계 갱신으로는 깨지 않음, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
+부모는 셸 `sleep`으로 주기 조회하지 않고(Claude Code는 30초 이상의 `sleep`을 막는다) 아래 명령으로 보고·실패·차단이 생길 때까지 기다린다(최대 60초, 단계 갱신으로는 깨지 않음, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
 
 ```bash
-python3 .claude/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 90
+python3 .claude/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 60
 ```
 
 Codex 설치에서는 `.claude/skills/`를 `.agents/skills/`로 바꾼다.
