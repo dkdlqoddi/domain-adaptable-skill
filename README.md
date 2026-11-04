@@ -7,8 +7,20 @@ Cofa Probe 환경의 해커톤을 위한 **Codex용 개인 하네스**입니다.
 
 다섯 스킬이 작업 절차를 안내하고, 지식과 결정은 과제 프로젝트의 `docs/`에 남깁니다.
 `$interview`는 페르소나에게 물을 질문을 만들고, 답을 정리하며, 인터뷰가 끝나면 다지기·요약·확인 4문항으로 마칩니다.
-`$delegate`는 독립 슬라이스를 tmux의 비대화형 `codex exec --yolo` 세션에 텍스트로 전달해 병렬 구현하고, 루트에서 각각 검증·정리·커밋합니다.
+`$spec`은 구현 계획을 10줄로 보여 주고 의견을 반영한 뒤 확정합니다. `$delegate`는 독립 슬라이스를 tmux의 비대화형 `codex exec --yolo` 작업자에 텍스트로 전달해 병렬 구현하고, 마일스톤마다 구현 방식을 확인하며, 루트에서 각각 검증·정리·커밋합니다.
 깊은 복습은 `$interview quiz`(12문항), 마무리는 16문항입니다. 학습 문서는 이 두 시점에만 써서 구현 중의 시간과 토큰을 아낍니다. 마지막에는 문제 정의·전체 동작·알고리즘·선택 이유·검증·한계를 정리하고, 모든 P0와 학습 주제를 문제·해설·근거에 연결합니다. 퀴즈는 제출이나 커밋을 막지 않습니다.
+
+## 모델 등급 — astra·sol·luna (Claude는 fable·opus·sonnet)
+
+판단은 상 등급 루트가, 구현은 중 등급 작업자가, 되풀이되는 검증·단순 수정은 하 등급이 맡아 토큰을 아낍니다. 상 등급은 루트만 씁니다.
+
+| 등급 | 누가 | 하는 일 | Codex | Claude |
+|---|---|---|---|---|
+| 상 | 루트 세션 | 재정의·인터뷰·계약·브리프·결정·판정·사람 확인 | `gpt-6-astra` | `fable` |
+| 중 | 구현 작업자 | 브리프대로 슬라이스 구현·검증·보고 | `gpt-6.1-sol` (high) | `opus` (high) |
+| 하 | 경량 작업자 | 검증·회귀 재실행, 파일 1~2개 단순 수정 | `gpt-6-luna` (medium) | `sonnet` (medium) |
+
+루트는 `codex -m gpt-6-astra`(또는 `~/.codex/config.toml`의 `model`)로 시작하고 `/model`로 바꿉니다. 작업자는 실행기가 설치 도구에 맞는 CLI를 `--tier`(기본 `implement`, 검증·단순 수정은 `light`)로 실행합니다. 등급표의 원본은 실행기의 `TIERS`이며, 설치 변환은 Markdown의 모델 이름만 바꿉니다.
 
 ## 폴더 지도
 
@@ -120,9 +132,9 @@ codex
 | 탐색 ~0:40 | `$interview` | 질문 3~5개를 본인 말로 바꿔 페르소나에게 묻기 |
 | 답 정리 반복 | `$interview <답변>` | domain·GLOSSARY·SPEC 갱신 + 다음 질문 |
 | 다지기·확인 | 인터뷰 종료 뒤 자동 진행 | 빈틈 질문 → 요약 → 확인 4문항(파일 없음). 깊은 복습은 `$interview quiz` |
-| 계약 ~1:20 | `$spec` | P0≤3·비목표·픽스처·슬라이스·검증 명령 확정 |
+| 계약 ~1:20 | `$spec` | P0≤3·비목표·픽스처·슬라이스·검증 명령 확정 → 구현 계획 10줄을 보고 의견 반영 |
 | 뼈대 | `$delegate S0` | 입력부터 출력까지 흐르는 뼈대·검증·커밋 |
-| 구현 ~3:10 | `$delegate S1` → `/new` → 다음 TODO | 독립 작업은 자동 병렬, 루트에서 슬라이스별 검증·정리·커밋. 실제 출력 시연 |
+| 구현 ~3:10 | `$delegate S1` → `/new` → 다음 TODO | 마일스톤(S0·P0 첫 슬라이스·대안 있는 알고리즘)은 방식 확인 후 진행. 독립 작업은 중 등급 작업자로 자동 병렬, 루트에서 슬라이스별 검증·정리·커밋. P0가 끝나면 시연·의견 |
 | 마무리 3:10~4:00 | `$wrapup` | 통합 검증·실행 README·RETRO·전체 정리·16문항 퀴즈 |
 
 커밋 또는 보류 사유가 `docs/`에 남은 뒤 `/new`로 새 대화를 시작하고 파일에서 재개합니다. [OpenAI 공식 명령 문서](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
@@ -134,7 +146,8 @@ codex
 |---|---|
 | 독립 작업 병렬 구현 | `$delegate S1` 또는 `$delegate S1 --parallel`. 선행 의존성이 DONE이고 쓰기 파일·검증 자원이 겹치지 않는 TODO를 기본 2개, 최대 6개 병렬 |
 | 한 슬라이스만 순차 구현 | `$delegate S1 --serial` |
-| tmux·Codex 없음 또는 실행 불가 | 사유를 알리고 내장 서브에이전트에 같은 브리프로 위임, 그것도 없으면 루트에서 순차 구현 |
+| 검증·단순 수정만 위임 | 실행기 `--tier light`(하 등급 `gpt-6-luna`). 루트에서 1분 안에 끝나면 직접 |
+| tmux·작업자 CLI 없음 또는 실행 불가 | 사유를 알리고 내장 서브에이전트에 같은 브리프와 등급 모델로 위임, 그것도 없으면 루트에서 순차 구현 |
 | 샌드박스가 커밋·실행기를 막음 | 권한 상승 승인 요청에 답한다. 거절하면 커밋은 보류, 병렬은 서브에이전트나 순차 구현 |
 | 구현 중 새 요구 | `$interview <답>` → `$spec` → `$delegate <새 ID>`. 기존 DONE은 유지 |
 | 계약 변경 BLOCKER | 루트에서 SPEC·CONTRACT·픽스처 갱신 후 재위임 |
@@ -150,8 +163,8 @@ codex
 
 ### 병렬 실행과 학습 문서
 
-[tmux 실행 절차](harness/.agents/skills/delegate/tmux.md)의 실행기가 브리프와 모듈 지침 전문을 초기 프롬프트로 전달합니다. 루트 `AGENTS.md`는 Codex가 스스로 읽으므로 다시 넣지 않고, Claude 설치의 `CLAUDE.md`는 자동으로 더합니다. `--yolo`는 승인과 샌드박스를 끄므로 허용된 작업 환경에서 사용합니다. [공식 CLI 옵션](https://learn.chatgpt.com/docs/cli/reference)
-실행기는 같은 프로젝트의 세션을 최대 6개로 제한합니다. 기본 위임은 2개이며, 독립 범위가 확인되면 6개까지 늘립니다. 작업자는 보고를 마치면 스스로 끝나며, 보고 없이 끝나 원인 확인용으로 남은 세션은 종료 전까지 한도에 포함됩니다. 비대화형 `codex exec`라 처음 보는 폴더의 신뢰 확인 화면에서 멈추지 않습니다.
+[tmux 실행 절차](harness/.agents/skills/delegate/tmux.md)의 실행기가 브리프와 모듈 지침 전문을 초기 프롬프트로 전달합니다. 실행기는 설치된 스킬 폴더로 작업자 CLI를 고르고(Codex: `codex exec --yolo -m gpt-6.1-sol`, Claude: `claude -p --model opus`), 작업자가 스스로 읽지 않는 쪽의 루트 지침만 자동으로 더합니다. `--yolo`와 `bypassPermissions`는 승인과 샌드박스를 끄므로 허용된 작업 환경에서 사용합니다. [공식 CLI 옵션](https://learn.chatgpt.com/docs/cli/reference)
+실행기는 같은 프로젝트의 세션을 최대 6개로 제한합니다. 기본 위임은 2개이며, 독립 범위가 확인되면 6개까지 늘립니다. 작업자는 보고를 마치면 스스로 끝나며, 보고 없이 끝나 원인 확인용으로 남은 세션은 종료 전까지 한도에 포함됩니다. 비대화형 실행이라 처음 보는 폴더의 신뢰 확인 화면에서 멈추지 않습니다.
 부모 에이전트(루트)는 셸 `sleep`으로 주기 조회하지 않고, 결과나 문제가 생길 때까지 기다리는 명령을 씁니다.
 
 ```bash
@@ -174,7 +187,7 @@ python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --ti
 - `AGENTS.md`의 작은 코드 원칙으로 불필요한 기능·추상화를 줄이고, 입력 검증·데이터 보호·보안·접근성은 유지합니다.
 - 공통 지침은 80줄, 스킬 본문은 120줄, 참고 파일은 80줄 이내로 유지합니다. 필요한 파일만 읽고 세션 상태는 문서에 남깁니다.
 - `scripts/check.sh`는 줄 수·프런트매터·호출 정책·참조·설치 테스트를 검사합니다. 토큰 수는 바이트 기반 근사이며 전체 세션 비용이 아닙니다.
-- 설치 테스트는 학습 문서를 포함한 기존 문서 보존·충돌·백업·재설치·Claude 호환·ZIP 동등성을 검증합니다. tmux가 있으면 가짜 Codex로 텍스트 전달·6개 동시 실행과 초과 차단·부모의 `wait`·`status` 조회·실패 화면 보존·루트 지침 중복 방지·보고와 실패 구분도 검사합니다. 실행 캐시(`__pycache__`)가 설치·ZIP에 섞이지 않는지도 확인합니다. 실제 모델의 구현 품질과 퀴즈 진행은 별도 리허설 대상입니다.
+- 설치 테스트는 학습 문서를 포함한 기존 문서 보존·충돌·백업·재설치·Claude 호환·ZIP 동등성을 검증합니다. tmux가 있으면 가짜 Codex·Claude CLI로 텍스트 전달·등급별 모델 선택·6개 동시 실행과 초과 차단·부모의 `wait`·`status` 조회·실패 화면 보존·루트 지침 중복 방지·보고와 실패 구분도 검사합니다. 실행 캐시(`__pycache__`)가 설치·ZIP에 섞이지 않는지도 확인합니다. 실제 모델의 구현 품질과 퀴즈 진행은 별도 리허설 대상입니다.
 
 ## Claude 호환 설치
 
@@ -187,7 +200,7 @@ python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --ti
 | 구버전 Claude | `--tool claude-commands` | 위 파일 + 링크를 보정한 `.claude/commands/*.md` | `/kickoff` / `/clear` |
 
 Claude 설치 시 기존 루트 `CLAUDE.md`가 사용자 지침이면 하네스는 `.claude/CLAUDE.md`에 설치합니다. 두 파일 모두 충돌하면 쓰기 전에 중단합니다.
-Claude 호환 설치에서도 tmux 병렬 실행기는 Codex CLI를 사용합니다. Codex가 없거나 실행할 수 없으면 Agent 도구(general-purpose)로, 그것도 없으면 Claude 루트 세션이 같은 브리프로 순차 구현합니다. `--tool claude`의 결과는 main 브랜치 원본과 같은 파일입니다.
+Claude 설치에서는 실행기가 `claude -p`로 중 등급 `opus`(검증·단순 수정은 `sonnet`) 작업자를 실행합니다(fable·opus·sonnet). Codex 작업자를 쓰려면 `--worker codex`. tmux·CLI를 쓸 수 없으면 Agent 도구(general-purpose)에 같은 모델을 지정해 위임하고, 그것도 없으면 Claude 루트 세션이 순차 구현합니다. 변환은 Markdown의 모델 이름(`gpt-6-astra`·`gpt-6.1-sol`·`gpt-6-luna` → `fable`·`opus`·`sonnet`)도 바꿉니다. `--tool claude`의 결과는 main 브랜치 원본과 같은 파일입니다.
 Claude 원본과 이전 변경 이력은 `main` 브랜치에서 확인할 수 있습니다.
 
 ## 미리 연습하기
@@ -212,7 +225,7 @@ Claude 원본과 이전 변경 이력은 `main` 브랜치에서 확인할 수 �
 | 저장소와 설치 | 이 저장소는 배포 원본이다. 과제 폴더에 설치하며, 충돌은 쓰기 전에 중단한다. `--force`는 백업 후 지침·스킬을 교체하고 기존 docs는 보존한다 | [설치기](scripts/install.py) |
 | 문제 정의 | kickoff에서 모르는 것을 찾고, interview에서 관찰·불편·데이터·성공·가설 순서로 확인한다. 사실·가정·미확인을 구분한다 | [인터뷰](harness/.agents/skills/interview/SKILL.md) |
 | 계약과 작업 분할 | P0는 최대 3개, 모듈은 기본 1개다. 비목표·구체적 입출력·실패 예·픽스처·검증 명령을 먼저 정하고 S0부터 만든다 | [계약](harness/.agents/skills/spec/SKILL.md) |
-| 구현과 통합 | 독립 작업은 기본 2개, 최대 6개 병렬로 실행한다. 파일뿐 아니라 포트·DB·생성물도 분리한다. 부모는 `wait`로 보고·실패·차단을 기다리고, 보고를 회수해 작업자를 멈춘 뒤 루트가 검증한다 | [위임](harness/.agents/skills/delegate/SKILL.md) |
+| 구현과 통합 | 독립 작업은 기본 2개, 최대 6개 병렬로 실행한다. 파일뿐 아니라 포트·DB·생성물도 분리한다. 부모는 `wait`로 보고·실패·차단을 기다리고, 보고를 회수해 작업자를 멈춘 뒤 루트가 검증한다. 구현 계획과 마일스톤 방식은 사람이 확인하고, 루트는 상 등급·작업자는 중·하 등급을 쓴다 | [위임](harness/.agents/skills/delegate/SKILL.md) |
 | 기록과 변경 보존 | 상태·지식·결정은 docs에 남긴다. 기존 변경을 보존하고 검토한 파일만 커밋한다. 기존 staged 변경이 있으면 자동 커밋을 보류한다 | [Git 절차](harness/.agents/skills/delegate/git-workflow.md) |
 | 마무리와 이해 | 통합 검증·실행 README·RETRO를 마친 뒤 전체 정리와 16문항으로 이해를 점검한다. 약점은 근거 코드·테스트로 복습하고 퀴즈가 제출을 막지 않게 한다 | [마무리](harness/.agents/skills/wrapup/SKILL.md) |
 | 증거의 범위 | 자동 검사는 설치·실행기의 동작을 확인한다. 실제 모델의 전체 수행은 별도 리허설로 확인한다. 과거 Claude 기록·비용과 평가 방식의 2차 정보는 현재 실행의 증거가 아니다 | [검사](scripts/check.sh), [평가 정보](docs/01-cofa-probe.md) |

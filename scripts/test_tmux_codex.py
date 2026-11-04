@@ -1,4 +1,4 @@
-"""모델 호출 없이 실제 tmux와 가짜 Codex로 동시 실행·부모 관찰·실패를 검증한다."""
+"""모델 호출 없이 실제 tmux와 가짜 Codex·Claude CLI로 동시 실행·등급 선택·부모 관찰·실패를 검증한다."""
 import importlib.util
 import json
 import os
@@ -24,21 +24,28 @@ def load_runner():
 
 
 class WorkerTest(unittest.TestCase):
-    def run_worker(self, returncode, reported):
+    def run_worker(self, returncode, reported, worker="codex"):
         runner = load_runner()
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)
             prompt = "여러 줄\n$HOME $(touch bad) `touch bad` ' \"\n"
             (path / "prompt.txt").write_text(prompt, encoding="utf-8")
-            (path / "run.json").write_text(json.dumps({"codex": "/fake/codex", "project": directory,
-                                                       "report": str(path / "report.md")}))
+            model, effort = runner.TIERS[worker]["light" if worker == "claude" else "implement"]
+            (path / "run.json").write_text(json.dumps({
+                "worker": worker, "cli": "/fake/" + worker, "model": model, "effort": effort,
+                "project": directory, "report": str(path / "report.md")}))
             if reported:
                 (path / "report.md").write_text("STATUS: COMPLETE\n검증 통과\n", encoding="utf-8")
             with mock.patch.object(runner.subprocess, "run", return_value=mock.Mock(returncode=returncode)) as call, \
                     mock.patch.object(runner.time, "sleep") as hold, mock.patch("sys.stdout"):
                 self.assertEqual(runner.run_worker(path), returncode)
-            self.assertEqual(call.call_args[0][0],
-                             ["/fake/codex", "exec", "--yolo", "-C", directory, prompt])
+            expected = (["/fake/claude", "-p", "--model", "sonnet", "--effort", "medium",
+                         "--permission-mode", "bypassPermissions", "--output-format", "text", prompt]
+                        if worker == "claude" else
+                        ["/fake/codex", "exec", "--yolo", "-C", directory, "-m", "gpt-6.1-sol",
+                         "-c", 'model_reasoning_effort="high"', prompt])
+            self.assertEqual(call.call_args[0][0], expected)
+            self.assertEqual(call.call_args[1]["cwd"], directory)
             self.assertNotIn("shell", call.call_args[1])
             self.assertIs(call.call_args[1]["stdin"], runner.subprocess.DEVNULL)
             self.assertEqual(json.loads((path / "exit.json").read_text())["exit_code"], returncode)
@@ -51,6 +58,17 @@ class WorkerTest(unittest.TestCase):
     def test_worker_with_report_and_normal_exit_closes_immediately(self):
         _, hold = self.run_worker(0, reported=True)
         hold.assert_not_called()
+
+    def test_claude_worker_runs_headless_with_light_tier_model(self):
+        _, hold = self.run_worker(0, reported=True, worker="claude")
+        hold.assert_not_called()
+
+    def test_default_worker_follows_install_path(self):
+        runner = load_runner()
+        self.assertEqual(runner.default_worker(), "claude" if ".claude" in RUNNER.parts else "codex")
+        self.assertEqual(set(runner.TIERS), {"codex", "claude"})
+        for tiers in runner.TIERS.values():
+            self.assertEqual(set(tiers), {"implement", "light"})
 
 
 @unittest.skipUnless(TMUX, "tmux가 없어 실제 tmux 통합 검사 생략 (가짜 Codex 사용)")
@@ -84,7 +102,7 @@ progress = shlex.split(next(line.split(": ", 1)[1] for line in prompt.splitlines
                            if line.startswith("진행 명령: ")))
 (report.parent / "argv.json").write_text(json.dumps({"args": sys.argv[1:], "cwd": os.getcwd()}))
 if "FAIL_CLI" in prompt:
-    print("fake codex: 로그인이 필요합니다", flush=True)
+    print("fake cli: 로그인이 필요합니다", flush=True)
     sys.exit(9)
 subprocess.run(progress + ["--phase", "implementing", "--message", "샘플 구현 중"], check=True)
 print("worker output: implementing", flush=True)
@@ -105,21 +123,23 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
     time.sleep(0.02)
 ''', encoding="utf-8")
         codex.chmod(0o755)
+        # 가짜 Claude CLI도 마지막 인자를 프롬프트로 읽는다. 어느 CLI가 불렸는지는 argv.json의 인자로 구분한다.
+        shutil.copy2(str(codex), str(binaries / "claude"))
         self.env = dict(os.environ, PATH=str(binaries) + os.pathsep + os.environ["PATH"])
         self.instructions = "루트 규칙 ' $literal\n공유 파일 수정 금지\n"
         (self.project / "rules.md").write_text(self.instructions, encoding="utf-8")
 
-    def launch(self, identity, text="작업", expected=0):
-        result = subprocess.run(self.launch_command(identity, text), env=self.env,
+    def launch(self, identity, text="작업", *options, expected=0):
+        result = subprocess.run(self.launch_command(identity, text, *options), env=self.env,
                                 text=True, capture_output=True, timeout=15)
         self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
         return json.loads(result.stdout) if expected == 0 else result
 
-    def launch_command(self, identity, text):
+    def launch_command(self, identity, text, *options):
         brief = self.project / (identity + ".md")
         brief.write_text(text, encoding="utf-8")
         return [sys.executable, "-B", str(RUNNER), "start", "--project", str(self.project),
-                "--id", identity, "--brief", brief.name, "--instruction", "rules.md"]
+                "--id", identity, "--brief", brief.name, "--instruction", "rules.md", *options]
 
     def command(self, *arguments, expected=0):
         result = subprocess.run([sys.executable, "-B", str(RUNNER), *arguments], env=self.env,
@@ -140,19 +160,21 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
 
     def test_two_sessions_pass_full_text_and_protect_existing_session(self):
         payload = "한글\n$HOME $(touch SHOULD_NOT_EXIST) `touch SHOULD_NOT_EXIST` ' \"\n"
-        first = self.launch("S1", payload)
-        second = self.launch("S2", "독립 작업\n")
+        first = self.launch("S1", payload, "--worker", "codex")
+        second = self.launch("S2", "독립 작업\n", "--worker", "codex")
         self.assertNotEqual(first["session"], second["session"])
+        self.assertEqual((first["worker"], first["model"], first["effort"]), ("codex", "gpt-6.1-sol", "high"))
         for run, body in ((first, payload), (second, "독립 작업\n")):
             report = Path(run["report"])
             self.wait_file(report)
             captured = json.loads((report.parent / "argv.json").read_text())
             self.assertEqual(captured["cwd"], str(self.project))
-            self.assertEqual(captured["args"][:4], ["exec", "--yolo", "-C", str(self.project)])
-            self.assertIn(body, captured["args"][4])
-            self.assertIn(self.instructions, captured["args"][4])
-            self.assertIn("사용자 입력을 기다리지 마라", captured["args"][4])
-            self.assertEqual(captured["args"][4], (report.parent / "prompt.txt").read_text())
+            self.assertEqual(captured["args"][:-1], ["exec", "--yolo", "-C", str(self.project), "-m", "gpt-6.1-sol",
+                                                     "-c", 'model_reasoning_effort="high"'])
+            self.assertIn(body, captured["args"][-1])
+            self.assertIn(self.instructions, captured["args"][-1])
+            self.assertIn("사용자 입력을 기다리지 마라", captured["args"][-1])
+            self.assertEqual(captured["args"][-1], (report.parent / "prompt.txt").read_text())
         runs = self.project / ".git/harness-runs"
         before = sorted(runs.iterdir())
         self.assertIn("이미 실행 중", self.launch("S1", expected=1).stderr)
@@ -253,8 +275,8 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
         self.assertEqual(row["state"], "FAILED")
         self.assertEqual(row["exit"]["exit_code"], 9)
         self.assertTrue(row["session_present"])
-        self.assertIn("fake codex: 로그인이 필요합니다", row["output_tail"])
-        self.assertIn("Codex 종료 코드 9", row["output_tail"])
+        self.assertIn("fake cli: 로그인이 필요합니다", row["output_tail"])
+        self.assertIn("종료 코드 9", row["output_tail"])
 
     def test_wait_returns_on_change_timeout_and_completion(self):
         run = self.launch("S1", "WAIT_REPORT")
@@ -296,18 +318,47 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
         self.assertEqual((idle_done["changed"], idle_done["running"], idle_done["timed_out"]), ([], [], False))
         self.assertIn("worker output", idle_done["runs"][0]["output_tail"])
 
-    def test_root_rules_are_passed_once_and_codex_rules_are_not_repeated(self):
+    def test_root_rules_are_passed_once_and_worker_own_rules_are_not_repeated(self):
         (self.project / "CLAUDE.md").write_text("클로드 루트 규칙\n", encoding="utf-8")
         (self.project / "AGENTS.md").write_text("에이전트 루트 규칙\n", encoding="utf-8")
         brief = self.project / "S5.md"
         brief.write_text("작업", encoding="utf-8")
-        run = self.command("start", "--project", str(self.project), "--id", "S5", "--brief", brief.name,
-                           "--instruction", "AGENTS.md", "--instruction", "CLAUDE.md", "--instruction", "rules.md")
-        self.assertEqual(run["instructions"], [str(self.project / "CLAUDE.md"), str(self.project / "rules.md")])
-        prompt = (Path(run["run_dir"]) / "prompt.txt").read_text(encoding="utf-8")
-        self.assertEqual(prompt.count("클로드 루트 규칙"), 1)
-        self.assertEqual(prompt.count(self.instructions), 1)
-        self.assertNotIn("에이전트 루트 규칙", prompt)
+        for worker, own, other in (("codex", "에이전트 루트 규칙", "클로드 루트 규칙"),
+                                   ("claude", "클로드 루트 규칙", "에이전트 루트 규칙")):
+            with self.subTest(worker=worker):
+                run = self.command("start", "--project", str(self.project), "--id", "S5" + worker, "--brief",
+                                   brief.name, "--worker", worker, "--instruction", "AGENTS.md",
+                                   "--instruction", "CLAUDE.md", "--instruction", "rules.md")
+                passed = "CLAUDE.md" if worker == "codex" else "AGENTS.md"
+                self.assertEqual(run["instructions"], [str(self.project / passed), str(self.project / "rules.md")])
+                prompt = (Path(run["run_dir"]) / "prompt.txt").read_text(encoding="utf-8")
+                self.assertEqual(prompt.count(other), 1)
+                self.assertEqual(prompt.count(self.instructions), 1)
+                self.assertNotIn(own, prompt)
+
+    def test_tier_and_worker_options_pick_the_model(self):
+        runner = load_runner()
+        default = self.launch("S7")
+        expected_worker = runner.default_worker()
+        self.assertEqual((default["worker"], default["model"]),
+                         (expected_worker, runner.TIERS[expected_worker]["implement"][0]))
+        self.assertTrue(Path(default["cli"]).name == expected_worker)
+        light = self.launch("S8", "작업", "--worker", "claude", "--tier", "light")
+        self.assertEqual((light["worker"], light["model"], light["effort"]), ("claude", "sonnet", "medium"))
+        custom = self.launch("S9", "작업", "--worker", "codex", "--model", "gpt-6-luna")
+        self.assertEqual((custom["model"], custom["effort"]), ("gpt-6-luna", "high"))
+        for run in (light, custom):
+            self.wait_file(Path(run["report"]))
+        captured = json.loads((Path(light["report"]).parent / "argv.json").read_text())
+        self.assertEqual(captured["cwd"], str(self.project))
+        self.assertEqual(captured["args"][:-1], ["-p", "--model", "sonnet", "--effort", "medium",
+                                                 "--permission-mode", "bypassPermissions", "--output-format", "text"])
+        self.assertEqual(captured["args"][-1], (Path(light["run_dir"]) / "prompt.txt").read_text())
+        captured = json.loads((Path(custom["report"]).parent / "argv.json").read_text())
+        self.assertEqual(captured["args"][4:6], ["-m", "gpt-6-luna"])
+        rows = {row["id"]: row for row in self.status("--tail", "0")["runs"]}
+        self.assertEqual((rows["S8"]["model"], rows["S9"]["model"]), ("sonnet", "gpt-6-luna"))
+        self.assertIn("--worker", self.launch("S10", "작업", "--worker", "gemini", expected=2).stderr)
 
     @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root는 읽기 전용 권한을 무시함")
     def test_unwritable_git_directory_explains_sandbox_escalation(self):

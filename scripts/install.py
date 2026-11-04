@@ -22,6 +22,8 @@ ARGUMENT_HINTS = {
     "wrapup": "[check | retro] — 없으면 check → retro·전체 정리 → 퀴즈",
 }
 TEMPLATE_COPY = '".claude/skills/kickoff/templates/docs/."'
+# 등급(상·중·하)별 모델 이름. Codex 원본의 이름을 Claude 별칭으로 바꾼다(실행기 TIERS와 같은 값).
+MODEL_NAMES = (("gpt-6-astra", "fable"), ("gpt-6.1-sol", "opus"), ("gpt-6-luna", "sonnet"))
 
 
 def skip_source(path):
@@ -38,6 +40,8 @@ def claude_text(text):
         text = "---\n" + frontmatter + "disable-model-invocation: true\n" + hint + "---\n" + body
     for name in COMMANDS:
         text = re.sub(r"\$" + name + r"\b", lambda _: "/" + name, text)
+    for codex_name, claude_name in MODEL_NAMES:
+        text = re.sub(r"\b" + re.escape(codex_name) + r"\b", claude_name, text)
     return (text.replace(".agents/skills/", ".claude/skills/")
             .replace("AGENTS.md", "CLAUDE.md")
             .replace("module-agents.template.md", "module-claude.template.md")

@@ -166,6 +166,10 @@ class InstallationTest(unittest.TestCase):
                 self.assertNotRegex(text, r"disable-model-invocation:|argument-hint:")
                 self.assertNotRegex(text, r"/(?:kickoff|interview|spec|delegate|wrapup)\b(?!/)")
                 self.assertNotIn("/clear", text)
+                self.assertNotRegex(text, r"\b(?:fable|opus|sonnet)\b")
+        rules = (self.project / "AGENTS.md").read_text(encoding="utf-8")
+        for name in ("gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"):
+            self.assertIn("`" + name + "`", rules)
 
     def test_codex_policy_conflict_is_backed_up(self):
         policy = ".agents/skills/interview/agents/openai.yaml"
@@ -193,6 +197,10 @@ class InstallationTest(unittest.TestCase):
         for path in self.project.rglob("*.md"):
             self.assertNotRegex(path.read_text(), r"AGENTS\.md|\.agents/|\$(?:kickoff|interview|spec|delegate|wrapup)\b|/new\b")
             self.assertNotIn("사용 가능한 서브에이전트 도구", path.read_text())
+            self.assertNotIn("gpt-6", path.read_text())
+        rules = (self.project / "CLAUDE.md").read_text(encoding="utf-8")
+        for name in ("fable", "opus", "sonnet"):
+            self.assertIn("`" + name + "`", rules)
         self.assertIn('"${CLAUDE_SKILL_DIR}/templates/docs/."', (skills / "kickoff/SKILL.md").read_text())
         self.assertIn("Agent 도구(general-purpose)", (skills / "delegate/SKILL.md").read_text())
         self.assertTrue((skills / "spec/module-claude.template.md").is_file())
