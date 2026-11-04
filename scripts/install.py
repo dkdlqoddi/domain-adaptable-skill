@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "harness"
 SKILLS = SOURCE / ".claude/skills"
 COMMANDS = ("kickoff", "interview", "spec", "delegate", "wrapup")
+# 등급(상·중·하)별 모델 이름. Claude 별칭을 Codex 모델 이름으로 바꾼다(실행기 TIERS와 같은 값).
+MODEL_NAMES = (("fable", "gpt-6-astra"), ("opus", "gpt-6.1-sol"), ("sonnet", "gpt-6-luna"))
 
 
 def skip_source(path):
@@ -29,6 +31,8 @@ def codex_text(text):
         text = "---\n" + "\n".join(fields) + "\n---\n" + body
     for name in COMMANDS:
         text = re.sub(r"/" + name + r"\b(?!/)", lambda _: "$" + name, text)
+    for claude_name, codex_name in MODEL_NAMES:
+        text = re.sub(r"\b" + claude_name + r"\b", codex_name, text)
     return (text.replace(".claude/skills/", ".agents/skills/")
             .replace("CLAUDE.md", "AGENTS.md")
             .replace("module-claude.template.md", "module-agents.template.md")

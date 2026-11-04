@@ -9,7 +9,7 @@
 | 설치·첫 커밋 | `harness.zip`을 과제 루트에 올리고 아래 블록. Codex는 주석대로 두 곳, 구버전 Claude는 설치 줄에 `--tool claude-commands` |
 | 충돌 | 기본은 아무것도 쓰지 않고 중단(zip은 남음). `--force`는 지침·스킬을 백업 후 교체. 기존 docs는 항상 보존 |
 | 리허설 (이 PC) | `scripts/install.sh <과제 경로>` 뒤 블록의 `git` 줄부터 |
-| 시작 | 과제 루트에서 `claude` 또는 `codex`. Codex는 `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
+| 시작 | 과제 루트에서 `claude --model fable` 또는 `codex -m gpt-6-astra`(상 등급 루트). Codex는 `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
 
 ```bash
 HARNESS_KIT=$(mktemp -d)
@@ -32,10 +32,18 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 | 탐색 ~0:40 | `/interview` | `$interview` | 질문을 본인 말로 바꿔 페르소나에게 묻기 |
 | 답 정리 반복 | `/interview <답>` | `$interview <답>` | 답을 붙이면 기록 + 다음 질문. 중요한 미지수가 있으면 추가 회차 |
 | 다지기 | 자동 진행 | 자동 진행 | 빈틈 질문 → 요약 → 확인 4문항(파일 없음). 깊은 복습은 `/interview quiz` |
-| 계약 ~1:20 | `/spec` | `$spec` | P0≤3·비목표·입출력 픽스처·검증 명령·쓰기 범위 확정 |
+| 계약 ~1:20 | `/spec` | `$spec` | P0≤3·비목표·입출력 픽스처·검증 명령·쓰기 범위 확정 → 구현 계획 10줄 확인·의견 반영 |
 | 뼈대 | `/delegate S0` | `$delegate S0` | 입력 하나가 끝까지 흐르는 구현·검증·커밋 |
-| 구현 ~3:10 | `/delegate <다음 ID>` → `/clear` | `$delegate <다음 ID>` → `/new` | 브리프·위임·재검증·회귀·정리·커밋. 커밋(또는 보류 사유)이 docs에 남으면 비우고 다음 슬라이스. S2 무렵 실제 출력 시연 |
+| 구현 ~3:10 | `/delegate <다음 ID>` → `/clear` | `$delegate <다음 ID>` → `/new` | 마일스톤이면 방식 확인 → 브리프·위임(중 등급)·재검증·회귀·정리·커밋. 커밋(또는 보류 사유)이 docs에 남으면 비우고 다음 슬라이스. P0마다 시연·의견 |
 | 마무리 3:10~4:00 | `/wrapup` | `$wrapup` | 통합 검증·README·RETRO·전체 내용 정리 → 16문항 |
+
+## 모델 등급 — 상은 루트만
+
+| 등급 | 누가 | Claude | Codex | 지정 |
+|---|---|---|---|---|
+| 상 | 루트 | `fable` | `gpt-6-astra` | 시작 옵션·`/model` |
+| 중 | 구현 작업자 | `opus` | `gpt-6.1-sol` | 실행기 기본(`--tier implement`) |
+| 하 | 검증·단순 수정 | `sonnet` | `gpt-6-luna` | `--tier light` |
 
 ## 인터뷰 사다리 — 한 묶음은 한 칸, 질문 3~5개
 
@@ -53,13 +61,14 @@ git diff --cached --stat && git commit -qm "init: 과제와 하네스"
 
 | 상황 | 대응 (Codex는 스킬 앞의 `/`를 `$`로) |
 |---|---|
-| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + 비대화형 `codex exec --yolo`에 브리프 전문 전달. 독립 작업 기본 2개, 최대 6개 |
+| 병렬 | `/delegate S1`(또는 `--parallel`): tmux + 비대화형 작업자(Claude `claude -p --model opus`, Codex `codex exec --yolo -m gpt-6.1-sol`)에 브리프 전문 전달. 독립 작업 기본 2개, 최대 6개 |
 | 순차 | `/delegate S1 --serial`. 선행 의존성 미완료·쓰기 파일·검증 자원 충돌 시에도 순차 |
+| 검증·단순 수정만 | 실행기 `--tier light`(하 등급 `sonnet`/`gpt-6-luna`) |
 | 새 요구 | `/interview <답>` → `/spec` → `/delegate <새 ID>` |
 | 버그 | 최소 재현 → 원인·파일·검증 3줄 → 최소 수정 → 재검증 |
 | 기존 변경 | 시작 상태와 비교해 보존. 기존 staged가 있으면 자동 스테이징·커밋 보류, 이유·경로 확인 |
 | 커밋 | 검토한 개별 파일만. 다른 브리프·캐시·`.harness-backups/` 제외. 범위 밖 파일 임의 복구 금지 |
-| tmux·Codex 없음·실행 불가 | Agent 도구(Codex는 내장 서브에이전트)에 같은 브리프로 위임, 그것도 없으면 루트에서 순차 구현 |
+| tmux·작업자 CLI 없음·실행 불가 | Agent 도구(Codex는 내장 서브에이전트)에 같은 브리프·등급 모델로 위임, 그것도 없으면 루트에서 순차 구현 |
 | 샌드박스 승인 요청 | 커밋·병렬 시작의 권한 상승을 승인. 거절하면 커밋 보류, 병렬은 서브에이전트나 순차 |
 | 마무리 실패 | 시간이 있으면 고친 뒤 `/wrapup` 재실행. 없으면 '실패를 RETRO에 적고 진행'을 고른다 |
 | 검증만 / 복습만 | `/wrapup check` / `/interview quiz` |

@@ -47,6 +47,11 @@ class InstallationTest(unittest.TestCase):
         self.assertEqual(len(list((self.project / ".claude/skills").glob("*/SKILL.md"))), 5)
         templates = ROOT / "harness/.claude/skills/kickoff/templates/docs"
         self.assertEqual(snapshot(self.project / "docs"), snapshot(templates))
+        rules = (self.project / "CLAUDE.md").read_text(encoding="utf-8")
+        for name in ("fable", "opus", "sonnet"):
+            self.assertIn("`" + name + "`", rules)
+        for path in self.project.rglob("*.md"):
+            self.assertNotIn("gpt-6", path.read_text(encoding="utf-8"))
         self.install()
         self.assertEqual(snapshot(self.project), before)
 
@@ -157,6 +162,10 @@ class InstallationTest(unittest.TestCase):
         self.assertNotIn("Agent 도구(general-purpose)", delegate)
         for path in self.project.rglob("*.md"):
             self.assertNotRegex(path.read_text(encoding="utf-8"), r"CLAUDE|\.claude|module-claude|\$ARGUMENTS")
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"\b(?:fable|opus|sonnet)\b")
+        rules = (self.project / "AGENTS.md").read_text(encoding="utf-8")
+        for name in ("gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"):
+            self.assertIn("`" + name + "`", rules)
 
     def test_python_cache_is_neither_installed_nor_packed(self):
         repo = self.base / "cache source"

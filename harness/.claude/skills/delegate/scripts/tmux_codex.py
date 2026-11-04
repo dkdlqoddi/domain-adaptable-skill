@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""tmux에서 비대화형 Codex 작업자(codex exec)를 최대 6개 실행하고 부모에게 진행 상황을 제공한다."""
+"""tmux에서 비대화형 작업자(codex exec 또는 claude -p)를 최대 6개 실행하고 부모에게 진행 상황을 제공한다.
+
+작업자 CLI는 이 파일이 설치된 경로로 고른다(.agents/skills → codex, .claude/skills → claude).
+모델은 등급으로 정한다: implement(중, 기본)는 슬라이스 구현, light(하)는 검증·회귀·단순 수정. 상 등급은 루트 전용이다.
+"""
 import argparse
 from datetime import datetime, timezone
 import errno
@@ -18,7 +22,11 @@ import time
 
 MAX_WORKERS = 6
 HOLD_SECONDS = 600  # 보고 없이 끝난 작업자 화면을 부모가 읽을 수 있게 남겨 두는 시간
-CLAUDE_RULES = ("CLAUDE.md", ".claude/CLAUDE.md")  # Codex가 스스로 읽지 않는 루트 지침
+# 작업자 CLI가 스스로 읽는 루트 지침. 다른 쪽 지침은 실행기가 전문으로 넣는다.
+ROOT_RULES = {"codex": ("AGENTS.md",), "claude": ("CLAUDE.md", ".claude/CLAUDE.md")}
+# 등급별 (모델, 추론 강도). 상 등급(gpt-6-astra / fable)은 루트가 쓰고 작업자에는 주지 않는다.
+TIERS = {"codex": {"implement": ("gpt-6.1-sol", "high"), "light": ("gpt-6-luna", "medium")},
+         "claude": {"implement": ("opus", "high"), "light": ("sonnet", "medium")}}
 SANDBOX_HINT = ("샌드박스가 .git 쓰기나 tmux 소켓을 막았을 수 있습니다. 같은 명령을 샌드박스 밖(권한 상승)으로 "
                 "다시 요청하고, 거절되면 서브에이전트 도구나 루트 순차 구현으로 진행하세요.")
 
@@ -34,6 +42,19 @@ def require(name):
     if not path:
         raise ValueError("실행 파일이 없습니다: " + name)
     return path
+
+
+def default_worker():
+    return "claude" if ".claude" in Path(__file__).resolve().parts else "codex"
+
+
+def worker_command(metadata, prompt):
+    """작업자 CLI 호출. 비대화형이라 신뢰 확인·질문에서 멈추지 않고, 프롬프트는 단일 인자로 전달한다."""
+    if metadata["worker"] == "claude":
+        return [metadata["cli"], "-p", "--model", metadata["model"], "--effort", metadata["effort"],
+                "--permission-mode", "bypassPermissions", "--output-format", "text", prompt]
+    return [metadata["cli"], "exec", "--yolo", "-C", metadata["project"], "-m", metadata["model"],
+            "-c", 'model_reasoning_effort="' + metadata["effort"] + '"', prompt]
 
 
 def project_paths(project):
@@ -80,6 +101,7 @@ def progress(args):
 def run_status(metadata, active, tmux, tail):
     run_dir = Path(metadata["run_dir"])
     row = {key: metadata[key] for key in ("id", "session", "run_dir", "report")}
+    row["model"] = metadata.get("model")
     row["session_present"] = metadata["session"] in active
     for name in ("progress", "exit"):
         path = run_dir / (name + ".json")
@@ -195,11 +217,10 @@ def wait(args):
 def run_worker(run_dir):
     metadata = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     prompt = (run_dir / "prompt.txt").read_text(encoding="utf-8")
-    # 대화형 TUI는 처음 보는 폴더의 신뢰 확인이나 질문에서 입력을 기다리며 멈춘다. exec는 끝나면 스스로 종료한다.
+    # 대화형 TUI는 처음 보는 폴더의 신뢰 확인이나 질문에서 입력을 기다리며 멈춘다. 비대화형 실행은 끝나면 스스로 종료한다.
     try:
-        result = subprocess.run(
-            [metadata["codex"], "exec", "--yolo", "-C", metadata["project"], prompt],
-            cwd=metadata["project"], stdin=subprocess.DEVNULL, check=False)
+        result = subprocess.run(worker_command(metadata, prompt),
+                                cwd=metadata["project"], stdin=subprocess.DEVNULL, check=False)
         code, error = result.returncode, ""
     except OSError as exc:
         code, error = 127, str(exc)
@@ -207,8 +228,8 @@ def run_worker(run_dir):
     reported = Path(metadata.get("report", run_dir / "report.md")).exists()
     if code or not reported:
         # 세션이 바로 닫히면 로그인·네트워크 오류 화면이 사라진다. 부모가 status --tail로 읽게 남긴다.
-        print("\n[harness] Codex 종료 코드 {}, 보고 {}. 원인 확인용으로 이 화면을 {}분 남깁니다.".format(
-            code, "있음" if reported else "없음", HOLD_SECONDS // 60), flush=True)
+        print("\n[harness] 작업자({}) 종료 코드 {}, 보고 {}. 원인 확인용으로 이 화면을 {}분 남깁니다.".format(
+            metadata.get("worker", "codex"), code, "있음" if reported else "없음", HOLD_SECONDS // 60), flush=True)
         if error:
             print("[harness] " + error, flush=True)
         try:
@@ -218,12 +239,13 @@ def run_worker(run_dir):
     return code
 
 
-def read_materials(project, brief, instructions):
-    """브리프와 지침 전문. Codex가 스스로 읽는 루트 AGENTS.md는 넣지 않고, 읽지 않는 Claude 지침은 자동으로 넣는다."""
+def read_materials(project, brief, instructions, worker):
+    """브리프와 지침 전문. 작업자 CLI가 스스로 읽는 루트 지침은 넣지 않고, 읽지 않는 쪽의 루트 지침은 자동으로 넣는다."""
     brief = brief if brief.is_absolute() else project / brief
-    chosen = [brief] + [project / name for name in CLAUDE_RULES
-                        if (project / name).is_file() and (project / name).read_text(encoding="utf-8").strip()]
-    skipped = {(project / "AGENTS.md").resolve()}
+    automatic = [project / name for other, names in ROOT_RULES.items() if other != worker for name in names]
+    chosen = [brief] + [path for path in automatic
+                        if path.is_file() and path.read_text(encoding="utf-8").strip()]
+    skipped = {(project / name).resolve() for name in ROOT_RULES[worker]}
     for path in instructions:
         path = path if path.is_absolute() else project / path
         if path.resolve() not in skipped and path.resolve() not in {item.resolve() for item in chosen}:
@@ -240,11 +262,14 @@ def read_materials(project, brief, instructions):
 def start(args):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", args.id):
         raise ValueError("ID는 영문·숫자로 시작하는 64자 이하 영문·숫자·_-만 가능합니다")
-    executables = {name: require(name) for name in ("git", "tmux", "codex")}
+    worker = args.worker or default_worker()
+    executables = {name: require(name) for name in ("git", "tmux", worker)}
     project, runs = project_paths(args.project)
     subprocess.run([executables["git"], "-C", str(project), "rev-parse", "--verify", "HEAD"],
                    check=True, capture_output=True)
-    materials = read_materials(project, args.brief, args.instruction)
+    materials = read_materials(project, args.brief, args.instruction, worker)
+    model, effort = TIERS[worker][args.tier]
+    choice = {"worker": worker, "cli": executables[worker], "model": args.model or model, "effort": effort}
     runs.mkdir(parents=True, exist_ok=True)
     # 동시에 start를 호출해도 확인과 세션 생성을 한 번에 하나씩 수행한다.
     with (runs / "start.lock").open("a") as lock:
@@ -256,10 +281,10 @@ def start(args):
             raise ValueError("이미 실행 중인 세션입니다: " + session + " (보고와 종료 상태를 먼저 확인)")
         if sum(name.startswith(prefix) for name in active) >= MAX_WORKERS:
             raise ValueError("프로젝트당 최대 6개 세션입니다. 기존 작업의 보고를 회수하고 종료하세요")
-        return launch(args.id, project, runs, session, executables, materials)
+        return launch(args.id, project, runs, session, executables["tmux"], choice, materials)
 
 
-def launch(identity, project, runs, session, executables, materials):
+def launch(identity, project, runs, session, tmux, choice, materials):
     run_dir = Path(tempfile.mkdtemp(prefix=identity + "-", dir=str(runs))).resolve()
     report = run_dir / "report.md"
     progress_command = shlex.join([sys.executable, str(Path(__file__).resolve()),
@@ -283,15 +308,15 @@ def launch(identity, project, runs, session, executables, materials):
     for path, contents in materials:
         prompt += "--- 자료: " + str(path) + " ---\n" + contents + "\n\n"
     metadata = {"id": identity, "project": str(project), "session": session,
-                "run_dir": str(run_dir), "report": str(report), "codex": executables["codex"],
+                "run_dir": str(run_dir), "report": str(report), **choice,
                 "progress": str(run_dir / "progress.json")}
     (run_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
     write_json(run_dir / "run.json", metadata)
-    write_json(run_dir / "progress.json", {"phase": "starting", "message": "Codex 실행 준비",
+    write_json(run_dir / "progress.json", {"phase": "starting", "message": "작업자 실행 준비",
                                            "updated_at": datetime.now(timezone.utc).isoformat()})
     # tmux의 다중 인자 실행을 사용한다. 프롬프트를 셸 코드나 키 입력으로 해석하지 않는다.
     try:
-        subprocess.run([executables["tmux"], "new-session", "-d", "-s", session,
+        subprocess.run([tmux, "new-session", "-d", "-s", session,
                         "-c", str(project), sys.executable, str(Path(__file__).resolve()),
                         "_worker", str(run_dir)], check=True, text=True, capture_output=True)
     except subprocess.CalledProcessError as exc:
@@ -318,6 +343,10 @@ def main():
     launch_parser.add_argument("--brief", type=Path, required=True)
     launch_parser.add_argument("--instruction", type=Path, action="append", default=[],
                                help="전문으로 전달할 모듈 지침 (반복 가능). 루트 지침은 자동 처리")
+    launch_parser.add_argument("--worker", choices=tuple(TIERS), help="작업자 CLI (기본: 설치 경로로 판단)")
+    launch_parser.add_argument("--tier", choices=("implement", "light"), default="implement",
+                               help="implement=중 등급 구현(기본), light=하 등급 검증·단순 수정")
+    launch_parser.add_argument("--model", help="등급 대신 쓸 모델 이름")
     inspect = commands.add_parser("status", help="부모용: 슬라이스별 최신 실행·진행·터미널 출력 JSON")
     inspect.add_argument("--project", type=Path, default=Path.cwd())
     inspect.add_argument("--id", action="append", help="조회할 슬라이스 (반복 가능, 기본 전체)")
