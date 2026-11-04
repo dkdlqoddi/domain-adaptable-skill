@@ -9,7 +9,7 @@
 | 반입 | `dist/harness.zip`을 과제 루트에 올리고 아래 설치 블록 실행 |
 | 충돌 | 쓰기 전에 중단. `--force`는 지침·스킬 백업 후 교체. 기존 docs는 항상 보존 |
 | 로컬 설치 | `bash scripts/install.sh <과제 경로>` (기본 Codex) |
-| 시작 | 첫 커밋 후 과제 루트에서 `codex -m gpt-6-astra`(상 등급 루트). `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
+| 시작 | 첫 커밋 후 과제 루트에서 `codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'`. `/status`로 승인 정책 확인(샌드박스면 커밋·병렬 시작 때 권한 상승 승인 요청) |
 
 ```bash
 HARNESS_KIT=$(mktemp -d)
@@ -26,7 +26,7 @@ git config user.email >/dev/null || git config user.email "me@example.com"
 git config user.name  >/dev/null || git config user.name "이름"
 git add -- README.md AGENTS.md .agents/ docs/    # + 검토한 과제 파일
 git diff --cached --stat && git commit -qm "init: 과제와 Codex 하네스"
-codex
+codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
 ```
 
 ## 진행 — Codex 입력창에서 (4시간 예시)
@@ -41,16 +41,31 @@ codex
 | 다지기 | 인터뷰 뒤 자동 진행 | 빈틈 질문 → 요약 → 확인 4문항(파일 없음). 깊은 복습은 `$interview quiz` |
 | 계약 ~1:20 | `$spec` | P0≤3·비목표·픽스처·검증 명령·쓰기 범위 확정 → 구현 계획 10줄 확인·의견 반영 |
 | 뼈대 | `$delegate S0` | 입력 하나가 끝까지 흐르는 구현·검증·커밋 |
-| 구현 ~3:10 | `$delegate <다음 ID>` → `/new` | 마일스톤이면 방식 확인 → 브리프·위임(중 등급)·검증·정리·커밋. 상태가 docs에 남은 뒤 새 대화. P0마다 시연·의견 |
+| 구현 ~3:10 | `$delegate <다음 ID>` → `/new` | 마일스톤이면 방식 확인 → 작은 브리프·Luna 구현·검증·정리·커밋. 상태가 docs에 남은 뒤 새 대화. P0마다 시연·의견 |
 | 마무리 3:10~4:00 | `$wrapup` | 통합 검증·README·RETRO·전체 내용 정리 → 16문항 |
 
-## 모델 등급 — 상은 루트만
+## 모델 선택 — 대회 허용 4종
 
-| 등급 | 누가 | Codex | Claude | 지정 |
-|---|---|---|---|---|
-| 상 | 루트 | `gpt-6-astra` | `fable` | 시작 옵션·`/model` |
-| 중 | 구현 작업자 | `gpt-6.1-sol` | `opus` | 실행기 기본(`--tier implement`) |
-| 하 | 검증·단순 수정 | `gpt-6-luna` | `sonnet` | `--tier light` |
+| 대상 / tier | 모델 ID | 추론 | 용도 |
+|---|---|---|---|
+| 루트 | `gpt-6.1-sol` | low | 판단·계약·통합, 필요할 때만 medium/high |
+| `implement` (기본) | `gpt-6-luna` | medium | 범위·샘플·검증이 명확한 구현 |
+| `light` | `gpt-6-luna` | low | 기계적 수정·추출 |
+| `reason` | `gpt-6.1-sol` | medium | 복잡한 구현·실패 진단 |
+| `fallback` | `gpt-6-sol` | medium | 주 모델 사용 불가·검증된 대체 |
+| `legacy` | `gpt-5.6-terra` | medium | 해당 작업에서 검증한 대체 |
+
+작은 수정·테스트·검색은 루트가 직접 실행한다. 모든 모델을 차례로 거치지 않는다. 같은 실패가 최소 수정 후 반복되면 원인·diff를 붙여 `reason`으로 한 번만 재위임한다. `--effort low|medium|high`로 조절하며, `--model`만 바꾸면 tier의 effort는 유지된다. [선택 기준](../harness/.agents/skills/delegate/routing.md)
+
+```bash
+# 복잡한 작업: 기본 implement 대신 reason
+python3 .agents/skills/delegate/scripts/tmux_codex.py start \
+  --project "$PWD" --id S1 --brief docs/briefs/S1.md --tier reason
+# 실패·재실행을 포함한 관측 토큰
+python3 .agents/skills/delegate/scripts/tmux_codex.py usage --project "$PWD"
+```
+
+집계의 캐시 입력은 입력에 포함된다. `unknown_runs`·`errors`도 확인한다. 루트 세션·다른 CLI·완료 이벤트 없는 실패 중 사용량은 별도이며, 실제 대회 비용이나 전체 토큰을 뜻하지 않는다.
 
 ## 인터뷰 사다리 — 한 묶음은 한 칸, 질문 3~5개
 
@@ -68,9 +83,9 @@ codex
 
 | 상황 | 대응 |
 |---|---|
-| 병렬 | `$delegate S1`(또는 `--parallel`): tmux + 비대화형 `codex exec --yolo -m gpt-6.1-sol`에 브리프 전문 전달. 독립 작업 기본 2개, 최대 6개 |
+| 병렬 | `$delegate S1 --parallel`: tmux + `codex exec --yolo --json`에 작은 브리프 전달. 독립 작업 2개, 필요할 때 최대 6개. 기본 호출은 1개 |
 | 순차 | `$delegate S1 --serial`. 선행 의존성 미완료·쓰기 파일·검증 자원 충돌 시에도 순차 |
-| 검증·단순 수정만 | 실행기 `--tier light`(하 등급 `gpt-6-luna`) |
+| 검증·단순 수정만 | 테스트 명령은 직접, 위임이 필요한 수정만 `--tier light`(`gpt-6-luna`, low) |
 | 새 요구 | `$interview <답>` → `$spec` → `$delegate <새 ID>` |
 | 버그 | 최소 재현 → 원인·파일·검증 3줄 → 최소 수정 → 재검증 |
 | 기존 변경 | 보존. 기존 staged가 있으면 자동 커밋 보류, 사유·경로 확인 |
@@ -82,10 +97,10 @@ codex
 | 스킬 미인식 | 과제 루트의 `.agents/skills/` 확인 → `/skills` 또는 `$` → 필요하면 재시작 |
 | 과잉 설계 | “SPEC에 근거가 없다. 제거하고 단순하게.” 입력 검증·데이터 보호·보안·접근성 유지 |
 
-부모는 셸 `sleep`으로 주기 조회하지 않고 아래 명령으로 보고·실패·차단이 생길 때까지 기다린다(최대 90초, 단계 갱신으로는 깨지 않음, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
+부모는 셸 `sleep`으로 주기 조회하지 않고 아래 명령으로 보고·실패·차단이 생길 때까지 기다린다(최대 60초, 단계 갱신으로는 깨지 않음, `--id S1`로 범위 지정). 멈췄거나 실패한 작업만 `status --id S1 --tail 40`으로 화면을 본다.
 
 ```bash
-python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 90
+python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --timeout 60
 ```
 
 병렬 세션의 보고를 모두 회수하고 작업자를 멈춘 뒤 루트가 문서·검증·커밋을 처리한다. `REPORTED_COMPLETE`만으로 DONE 처리하지 않는다. [실행·회수 명령](../harness/.agents/skills/delegate/tmux.md)

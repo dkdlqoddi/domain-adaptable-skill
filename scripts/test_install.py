@@ -1,4 +1,5 @@
 """Codex 원본 설치·충돌·보존·Claude 호환 형식·ZIP 배포를 검증한다."""
+import ast
 from pathlib import Path
 import re
 import shutil
@@ -167,9 +168,9 @@ class InstallationTest(unittest.TestCase):
                 self.assertNotRegex(text, r"/(?:kickoff|interview|spec|delegate|wrapup)\b(?!/)")
                 self.assertNotIn("/clear", text)
                 self.assertNotRegex(text, r"\b(?:fable|opus|sonnet)\b")
-        rules = (self.project / "AGENTS.md").read_text(encoding="utf-8")
-        for name in ("gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"):
-            self.assertIn("`" + name + "`", rules)
+        text = "\n".join(path.read_text(encoding="utf-8") for path in self.project.rglob("*.md"))
+        self.assertEqual(set(re.findall(r"\bgpt-[\w.-]+", text)),
+                         {"gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-terra", "gpt-6-luna"})
 
     def test_codex_policy_conflict_is_backed_up(self):
         policy = ".agents/skills/interview/agents/openai.yaml"
@@ -197,14 +198,27 @@ class InstallationTest(unittest.TestCase):
         for path in self.project.rglob("*.md"):
             self.assertNotRegex(path.read_text(), r"AGENTS\.md|\.agents/|\$(?:kickoff|interview|spec|delegate|wrapup)\b|/new\b")
             self.assertNotIn("사용 가능한 서브에이전트 도구", path.read_text())
-            self.assertNotIn("gpt-6", path.read_text())
+            self.assertNotRegex(path.read_text(), r"\bgpt-\d")
         rules = (self.project / "CLAUDE.md").read_text(encoding="utf-8")
-        for name in ("fable", "opus", "sonnet"):
+        for name in ("opus", "sonnet"):
             self.assertIn("`" + name + "`", rules)
         self.assertIn('"${CLAUDE_SKILL_DIR}/templates/docs/."', (skills / "kickoff/SKILL.md").read_text())
         self.assertIn("Agent 도구(general-purpose)", (skills / "delegate/SKILL.md").read_text())
         self.assertTrue((skills / "spec/module-claude.template.md").is_file())
         self.assert_links_exist(skills)
+
+    def test_model_conversion_matches_every_runner_tier(self):
+        def constant(path, name):
+            for node in ast.parse(path.read_text(encoding="utf-8")).body:
+                if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == name for t in node.targets):
+                    return ast.literal_eval(node.value)
+            self.fail("없는 상수: " + name)
+        tiers = constant(ROOT / "harness/.agents/skills/delegate/scripts/tmux_codex.py", "TIERS")
+        mapping = dict(constant(ROOT / "scripts/install.py", "MODEL_NAMES"))
+        self.assertEqual(set(tiers["codex"]), set(tiers["claude"]))
+        self.assertEqual(set(mapping), {model for model, _ in tiers["codex"].values()})
+        for tier, (model, effort) in tiers["codex"].items():
+            self.assertEqual(tiers["claude"][tier], (mapping[model], effort))
 
     def test_python_cache_is_neither_installed_nor_packed(self):
         repo = self.base / "cache source"

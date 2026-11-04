@@ -22,8 +22,9 @@ ARGUMENT_HINTS = {
     "wrapup": "[check | retro] — 없으면 check → retro·전체 정리 → 퀴즈",
 }
 TEMPLATE_COPY = '".claude/skills/kickoff/templates/docs/."'
-# 등급(상·중·하)별 모델 이름. Codex 원본의 이름을 Claude 별칭으로 바꾼다(실행기 TIERS와 같은 값).
-MODEL_NAMES = (("gpt-6-astra", "fable"), ("gpt-6.1-sol", "opus"), ("gpt-6-luna", "sonnet"))
+# 실행기 TIERS와 같은 매핑. 여러 Codex 모델이 같은 Claude 별칭을 사용할 수 있다.
+MODEL_NAMES = (("gpt-6.1-sol", "opus"), ("gpt-6-sol", "opus"),
+               ("gpt-5.6-terra", "sonnet"), ("gpt-6-luna", "sonnet"))
 
 
 def skip_source(path):

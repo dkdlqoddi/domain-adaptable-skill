@@ -18,7 +18,9 @@ zip -qz "$STAGE/harness.zip" <<'EOF'
   bash "$HARNESS_KIT/scripts/install.sh" "$PWD" && rm harness.zip
 기본은 Codex(AGENTS.md + .agents/skills/). Claude: --tool claude / 구버전 Claude: --tool claude-commands
 충돌 시 쓰기 전에 중단(zip은 남음). --force는 백업 후 교체. docs/는 항상 보존.
-그다음 치트시트 준비 블록대로 Git 설정·첫 커밋 → codex → $kickoff README.md <마감 시각>.
+그다음 Git 설정·첫 커밋 후 루트 시작:
+  codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
+Codex 입력창: $kickoff README.md <마감 시각>.
 EOF
 mv "$STAGE/harness.zip" "$OUT/harness.zip"
 echo "생성: $OUT/harness.zip ($(du -h "$OUT/harness.zip" | cut -f1))"

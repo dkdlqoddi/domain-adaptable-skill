@@ -9,7 +9,7 @@
 - 기존 파일 충돌은 쓰기 전에 중단하고, `--force`는 백업 후 교체한다. 기존 `docs/` 내용은 항상 보존한다.
 - 다섯 스킬의 사용자 호출 전용 정책(`agents/openai.yaml`)을 유지한다. 스킬 참조와 모듈 지침 이름 변경 시 설치기·검사·사용 문서를 함께 갱신한다.
 - `main`(Claude 원본)과 함께 고칠 때는 이 브랜치의 `--tool claude` 설치 결과가 main 원본 설치와, main의 `--tool codex` 결과가 이 브랜치 설치와 같은지 비교한다. 변환은 Markdown에만 적용되므로 하네스 Markdown에서 두 지침 파일 이름을 한 문장에 함께 쓰지 않는다.
-- 모델 이름도 변환 대상이다(`gpt-6-astra`·`gpt-6.1-sol`·`gpt-6-luna` ↔ `fable`·`opus`·`sonnet`, 원본은 실행기의 `TIERS`). 하네스 Markdown에 두 도구의 모델 이름을 함께 쓰지 않는다.
+- 모델 이름도 변환 대상이다(`gpt-6.1-sol`·`gpt-6-sol` → `opus`, `gpt-6-luna`·`gpt-5.6-terra` → `sonnet`; 원본은 실행기의 `TIERS`). Codex는 대회 허용 모델 네 개만 쓰고, 하네스 Markdown에 두 도구의 모델 이름을 함께 쓰지 않는다.
 - 검증: `bash scripts/check.sh`. 배포 변경 시 `bash scripts/pack.sh`로 `dist/harness.zip`도 생성한다. `dist/`는 커밋하지 않는다.
 - `examples/`의 과거 대화·비용·코드·커밋 기록은 당시 실행의 증거다. Codex 실행 결과로 바꾸어 적지 않는다. 현재 사용법은 README와 치트시트에 둔다.
 - 기존 미커밋 변경을 보존하고, 작업한 파일만 검토해 커밋한다.

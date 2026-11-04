@@ -1,5 +1,6 @@
 """모델 호출 없이 실제 tmux와 가짜 Codex·Claude CLI로 동시 실행·등급 선택·부모 관찰·실패를 검증한다."""
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -36,19 +37,32 @@ class WorkerTest(unittest.TestCase):
                 "project": directory, "report": str(path / "report.md")}))
             if reported:
                 (path / "report.md").write_text("STATUS: COMPLETE\n검증 통과\n", encoding="utf-8")
-            with mock.patch.object(runner.subprocess, "run", return_value=mock.Mock(returncode=returncode)) as call, \
+            def execute(*args, **kwargs):
+                if "stdout" in kwargs and reported:
+                    kwargs["stdout"].write(json.dumps({"type": "turn.completed", "usage": {
+                        "input_tokens": 100, "cached_input_tokens": 80, "output_tokens": 20}}) + "\n")
+                return mock.Mock(returncode=returncode)
+            with mock.patch.object(runner.subprocess, "run", side_effect=execute) as call, \
                     mock.patch.object(runner.time, "sleep") as hold, mock.patch("sys.stdout"):
                 self.assertEqual(runner.run_worker(path), returncode)
-            expected = (["/fake/claude", "-p", "--model", "sonnet", "--effort", "medium",
+            expected = (["/fake/claude", "-p", "--model", "sonnet", "--effort", "low",
                          "--permission-mode", "bypassPermissions", "--output-format", "text", prompt]
                         if worker == "claude" else
-                        ["/fake/codex", "exec", "--yolo", "-C", directory, "-m", "gpt-6.1-sol",
-                         "-c", 'model_reasoning_effort="high"', prompt])
+                        ["/fake/codex", "exec", "--yolo", "--json", "-C", directory, "-m", "gpt-6-luna",
+                         "-c", 'model_reasoning_effort="medium"', prompt])
             self.assertEqual(call.call_args[0][0], expected)
             self.assertEqual(call.call_args[1]["cwd"], directory)
             self.assertNotIn("shell", call.call_args[1])
             self.assertIs(call.call_args[1]["stdin"], runner.subprocess.DEVNULL)
             self.assertEqual(json.loads((path / "exit.json").read_text())["exit_code"], returncode)
+            if worker == "codex":
+                counts = json.loads((path / "usage.json").read_text())
+                if reported:
+                    self.assertEqual(counts["total_tokens"], 120)
+                else:
+                    self.assertIsNone(counts)
+            else:
+                self.assertFalse((path / "usage.json").exists())
             return runner, hold
 
     def test_worker_keeps_prompt_literal_and_holds_screen_after_cli_failure(self):
@@ -68,7 +82,74 @@ class WorkerTest(unittest.TestCase):
         self.assertEqual(runner.default_worker(), "claude" if ".claude" in RUNNER.parts else "codex")
         self.assertEqual(set(runner.TIERS), {"codex", "claude"})
         for tiers in runner.TIERS.values():
-            self.assertEqual(set(tiers), {"implement", "light"})
+            self.assertEqual(set(tiers), {"implement", "light", "reason", "fallback", "legacy"})
+
+    def test_competition_models_and_effort_override(self):
+        runner = load_runner()
+        expected = {"implement": ("gpt-6-luna", "medium"), "light": ("gpt-6-luna", "low"),
+                    "reason": ("gpt-6.1-sol", "medium"), "fallback": ("gpt-6-sol", "medium"),
+                    "legacy": ("gpt-5.6-terra", "medium")}
+        for tier, (model, effort) in expected.items():
+            with self.subTest(tier=tier):
+                self.assertEqual(runner.model_choice("codex", tier),
+                                 {"worker": "codex", "tier": tier, "model": model, "effort": effort})
+        choice = runner.model_choice("codex", "fallback", "gpt-5.6-terra", "high")
+        self.assertEqual((choice["model"], choice["effort"]), ("gpt-5.6-terra", "high"))
+        with self.assertRaisesRegex(ValueError, "허용 모델"):
+            runner.model_choice("codex", "implement", "gpt-6-astra")
+
+    def test_usage_events_ignore_noise_and_do_not_double_count_cached_input(self):
+        runner = load_runner()
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            rows = [{"type": "item.completed", "usage": {"input_tokens": 999}},
+                    {"type": "turn.completed", "usage": {"input_tokens": 100, "cached_input_tokens": 80,
+                                                         "output_tokens": 20, "reasoning_output_tokens": 5}},
+                    {"type": "turn.completed", "usage": {"input_tokens": 50, "cached_input_tokens": 10,
+                                                         "output_tokens": 5}}]
+            invalid = [None, [], {"type": "turn.failed"}, {"type": "turn.completed", "usage": None},
+                       {"type": "turn.completed", "usage": {"input_tokens": 5, "cached_input_tokens": 6,
+                                                            "output_tokens": 1}},
+                       {"type": "turn.completed", "usage": {"input_tokens": True, "cached_input_tokens": 0,
+                                                            "output_tokens": -1}}]
+            noise = "not-json\n" + "\n".join(json.dumps(row) for row in invalid) + "\n"
+            path.write_text(noise + "\n".join(json.dumps(row) for row in rows) + '\n{"type":', encoding="utf-8")
+            self.assertEqual(runner.summarize_events(path), {"input_tokens": 150, "cached_input_tokens": 90,
+                                                            "output_tokens": 25, "total_tokens": 175, "turns": 2})
+            path.write_text(noise, encoding="utf-8")
+            self.assertIsNone(runner.summarize_events(path))
+
+    def test_usage_includes_earlier_failed_attempt_and_marks_missing_counts(self):
+        runner = load_runner()
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            runs = project / "runs"
+            for name, identity, counts in (("first", "S1", 120), ("retry", "S1", 240),
+                                          ("no_usage", "S1", None), ("other", "S2", 80)):
+                path = runs / name
+                path.mkdir(parents=True)
+                runner.write_json(path / "run.json", {"project": str(project), "id": identity,
+                                                       "model": "gpt-6-luna", "effort": "medium"})
+                runner.write_json(path / "exit.json", {"exit_code": 9 if name == "first" else 0})
+                if counts:
+                    runner.write_json(path / "usage.json", {"input_tokens": counts - 20, "output_tokens": 20,
+                                                            "cached_input_tokens": 60, "total_tokens": counts})
+            def collect(identity):
+                output = io.StringIO()
+                with mock.patch.object(runner, "project_paths", return_value=(project, runs)), \
+                        mock.patch("sys.stdout", output):
+                    runner.usage(mock.Mock(project=project, id=identity))
+                return json.loads(output.getvalue())
+            report = collect(["S1"])
+            self.assertEqual(report["observed_total_tokens"], 360)
+            self.assertEqual(report["unknown_runs"], 1)
+            self.assertEqual(report["by_model_effort"]["gpt-6-luna/medium"]["runs"], 3)
+            self.assertEqual(collect(None)["observed_total_tokens"], 440)
+            (runs / "no_usage/usage.json").write_text("{broken", encoding="utf-8")
+            broken = collect(["S1"])
+            self.assertEqual(broken["unknown_runs"], 1)
+            self.assertEqual(len(broken["errors"]), 1)
+            self.assertEqual(broken["observed_total_tokens"], 360)
 
 
 @unittest.skipUnless(TMUX, "tmux가 없어 실제 tmux 통합 검사 생략 (가짜 Codex 사용)")
@@ -105,7 +186,7 @@ if "FAIL_CLI" in prompt:
     print("fake cli: 로그인이 필요합니다", flush=True)
     sys.exit(9)
 subprocess.run(progress + ["--phase", "implementing", "--message", "샘플 구현 중"], check=True)
-print("worker output: implementing", flush=True)
+print("worker output: implementing", file=sys.stderr, flush=True)
 (report.parent / "ready").touch()
 deadline = time.monotonic() + 30
 while "WAIT_REPORT" in prompt and not (report.parent / "finish").exists() and time.monotonic() < deadline:
@@ -121,6 +202,9 @@ temporary.write_text("STATUS: BLOCKED\\nBLOCKER: 계약 확인\\n" if blocked el
 temporary.replace(report)
 while not (report.parent / "release").exists() and time.monotonic() < deadline:
     time.sleep(0.02)
+if "--json" in sys.argv:
+    print(json.dumps({"type": "turn.completed", "usage": {
+        "input_tokens": 100, "cached_input_tokens": 80, "output_tokens": 20}}), flush=True)
 ''', encoding="utf-8")
         codex.chmod(0o755)
         # 가짜 Claude CLI도 마지막 인자를 프롬프트로 읽는다. 어느 CLI가 불렸는지는 argv.json의 인자로 구분한다.
@@ -163,18 +247,19 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
         first = self.launch("S1", payload, "--worker", "codex")
         second = self.launch("S2", "독립 작업\n", "--worker", "codex")
         self.assertNotEqual(first["session"], second["session"])
-        self.assertEqual((first["worker"], first["model"], first["effort"]), ("codex", "gpt-6.1-sol", "high"))
+        self.assertEqual((first["worker"], first["model"], first["effort"]), ("codex", "gpt-6-luna", "medium"))
         for run, body in ((first, payload), (second, "독립 작업\n")):
             report = Path(run["report"])
             self.wait_file(report)
             captured = json.loads((report.parent / "argv.json").read_text())
             self.assertEqual(captured["cwd"], str(self.project))
-            self.assertEqual(captured["args"][:-1], ["exec", "--yolo", "-C", str(self.project), "-m", "gpt-6.1-sol",
-                                                     "-c", 'model_reasoning_effort="high"'])
+            self.assertEqual(captured["args"][:-1], ["exec", "--yolo", "--json", "-C", str(self.project), "-m", "gpt-6-luna",
+                                                     "-c", 'model_reasoning_effort="medium"'])
             self.assertIn(body, captured["args"][-1])
             self.assertIn(self.instructions, captured["args"][-1])
             self.assertIn("사용자 입력을 기다리지 마라", captured["args"][-1])
             self.assertEqual(captured["args"][-1], (report.parent / "prompt.txt").read_text())
+            self.assertEqual(run["prompt_bytes"], len(captured["args"][-1].encode("utf-8")))
         runs = self.project / ".git/harness-runs"
         before = sorted(runs.iterdir())
         self.assertIn("이미 실행 중", self.launch("S1", expected=1).stderr)
@@ -188,6 +273,10 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
             (directory / "release").touch()
             self.wait_file(directory / "exit.json")
             self.assertEqual(json.loads((directory / "exit.json").read_text())["exit_code"], 0)
+        accounting = self.command("usage", "--project", str(self.project))
+        self.assertEqual(accounting["observed_total_tokens"], 240)
+        self.assertEqual(accounting["unknown_runs"], 0)
+        self.assertEqual(self.status("--id", "S1")["runs"][0]["usage"]["total_tokens"], 120)
 
     def test_parent_observes_live_progress_output_and_final_report(self):
         run = self.launch("S1", "WAIT_REPORT")
@@ -344,21 +433,26 @@ while not (report.parent / "release").exists() and time.monotonic() < deadline:
                          (expected_worker, runner.TIERS[expected_worker]["implement"][0]))
         self.assertTrue(Path(default["cli"]).name == expected_worker)
         light = self.launch("S8", "작업", "--worker", "claude", "--tier", "light")
-        self.assertEqual((light["worker"], light["model"], light["effort"]), ("claude", "sonnet", "medium"))
-        custom = self.launch("S9", "작업", "--worker", "codex", "--model", "gpt-6-luna")
+        self.assertEqual((light["worker"], light["model"], light["effort"]), ("claude", "sonnet", "low"))
+        custom = self.launch("S9", "작업", "--worker", "codex", "--tier", "reason", "--model", "gpt-6-luna", "--effort", "high")
         self.assertEqual((custom["model"], custom["effort"]), ("gpt-6-luna", "high"))
         for run in (light, custom):
             self.wait_file(Path(run["report"]))
         captured = json.loads((Path(light["report"]).parent / "argv.json").read_text())
         self.assertEqual(captured["cwd"], str(self.project))
-        self.assertEqual(captured["args"][:-1], ["-p", "--model", "sonnet", "--effort", "medium",
+        self.assertEqual(captured["args"][:-1], ["-p", "--model", "sonnet", "--effort", "low",
                                                  "--permission-mode", "bypassPermissions", "--output-format", "text"])
         self.assertEqual(captured["args"][-1], (Path(light["run_dir"]) / "prompt.txt").read_text())
         captured = json.loads((Path(custom["report"]).parent / "argv.json").read_text())
-        self.assertEqual(captured["args"][4:6], ["-m", "gpt-6-luna"])
+        self.assertEqual(captured["args"][5:9], ["-m", "gpt-6-luna", "-c", 'model_reasoning_effort="high"'])
         rows = {row["id"]: row for row in self.status("--tail", "0")["runs"]}
         self.assertEqual((rows["S8"]["model"], rows["S9"]["model"]), ("sonnet", "gpt-6-luna"))
         self.assertIn("--worker", self.launch("S10", "작업", "--worker", "gemini", expected=2).stderr)
+
+    def test_disallowed_model_fails_before_launch(self):
+        result = self.launch("S1", "작업", "--worker", "codex", "--model", "gpt-6-astra", expected=1)
+        self.assertIn("허용 모델", result.stderr)
+        self.assertFalse((self.project / ".git/harness-runs").exists())
 
     @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root는 읽기 전용 권한을 무시함")
     def test_unwritable_git_directory_explains_sandbox_escalation(self):

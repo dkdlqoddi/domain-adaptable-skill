@@ -3,7 +3,7 @@
 # 사용: scripts/check.sh
 set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; H="$ROOT/harness"; fail=0
-tok() { echo $(( $(wc -c < "$1") / 4 )); }   # 근사: 4바이트 ≈ 1토큰 (한글 기준 보수적 추정)
+tok() { echo $(( $(wc -c < "$1") / 4 )); }   # 크기 비교용 바이트/4. 실제 tokenizer·세션 사용량이 아니다.
 budget() {
   local n; n=$(wc -l < "$1")
   printf "  %-52s %4d줄  ~%5d tok  한도 %3d  " "${1#$H/}" "$n" "$(tok "$1")" "$2"
@@ -11,6 +11,8 @@ budget() {
 }
 echo "== 줄 수 예산 =="
 budget "$H/AGENTS.md" 80
+root_bytes=$(wc -c < "$H/AGENTS.md")
+if [ "$root_bytes" -gt 5000 ]; then echo "  AGENTS.md 상시 문맥 예산 초과: ${root_bytes}/5000 bytes"; fail=1; fi
 for s in "$H"/.agents/skills/*/SKILL.md; do budget "$s" 120; done
 for t in "$H"/.agents/skills/*/*.md; do case "$t" in */SKILL.md) ;; *) budget "$t" 80 ;; esac; done
 P="$H/.agents/skills/kickoff/templates/docs/domain/primer.md"; [ -f "$P" ] && budget "$P" 80
@@ -43,9 +45,10 @@ for s in "$H"/.agents/skills/*/*.md; do
 done
 [ $missing -eq 0 ] && echo "  모두 존재" || fail=1
 
-echo "== Codex에서 하네스가 더하는 양 (근사, 시스템·도구·대화 토큰 제외) =="
+echo "== 상시 문맥 크기 (바이트/4 비교값, 실제 토큰 아님; 시스템·도구·대화 제외) =="
 always=$(tok "$H/AGENTS.md")
 echo "  AGENTS.md ~${always} tok  +  자동 로드 스킬 설명 ~${always_desc} tok  =  ~$(( always + always_desc )) tok"
+echo "  AGENTS.md ${root_bytes}/5000 bytes; 실제 작업자 토큰: tmux_codex.py usage"
 echo "== 설치·패키징 회귀 검증 =="
 for script in "$ROOT"/scripts/*.sh; do bash -n "$script" || fail=1; done
 python3 -B -m unittest discover -s "$ROOT/scripts" -p 'test_*.py' || fail=1

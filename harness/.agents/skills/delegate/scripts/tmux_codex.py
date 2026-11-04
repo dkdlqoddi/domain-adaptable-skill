@@ -2,9 +2,11 @@
 """tmux에서 비대화형 작업자(codex exec 또는 claude -p)를 최대 6개 실행하고 부모에게 진행 상황을 제공한다.
 
 작업자 CLI는 이 파일이 설치된 경로로 고른다(.agents/skills → codex, .claude/skills → claude).
-모델은 등급으로 정한다: implement(중, 기본)는 슬라이스 구현, light(하)는 검증·회귀·단순 수정. 상 등급은 루트 전용이다.
+기본 implement는 Luna의 제한된 구현, reason은 Sol 6.1의 복잡한 구현·실패 진단이다.
+Codex 완료 턴의 실제 토큰은 usage로 집계한다. 모델 호출 없이 start 전에 등급을 고른다.
 """
 import argparse
+from collections import deque
 from datetime import datetime, timezone
 import errno
 import fcntl
@@ -24,9 +26,16 @@ MAX_WORKERS = 6
 HOLD_SECONDS = 600  # 보고 없이 끝난 작업자 화면을 부모가 읽을 수 있게 남겨 두는 시간
 # 작업자 CLI가 스스로 읽는 루트 지침. 다른 쪽 지침은 실행기가 전문으로 넣는다.
 ROOT_RULES = {"codex": ("AGENTS.md",), "claude": ("CLAUDE.md", ".claude/CLAUDE.md")}
-# 등급별 (모델, 추론 강도). 상 등급(gpt-6-astra / fable)은 루트가 쓰고 작업자에는 주지 않는다.
-TIERS = {"codex": {"implement": ("gpt-6.1-sol", "high"), "light": ("gpt-6-luna", "medium")},
-         "claude": {"implement": ("opus", "high"), "light": ("sonnet", "medium")}}
+# 등급별 (모델, 추론 강도). Codex는 대회 허용 모델 네 개만 사용한다.
+TIERS = {
+    "codex": {"implement": ("gpt-6-luna", "medium"), "light": ("gpt-6-luna", "low"),
+              "reason": ("gpt-6.1-sol", "medium"), "fallback": ("gpt-6-sol", "medium"),
+              "legacy": ("gpt-5.6-terra", "medium")},
+    "claude": {"implement": ("sonnet", "medium"), "light": ("sonnet", "low"),
+               "reason": ("opus", "medium"), "fallback": ("opus", "medium"),
+               "legacy": ("sonnet", "medium")},
+}
+TOKEN_FIELDS = ("input_tokens", "cached_input_tokens", "output_tokens")
 SANDBOX_HINT = ("샌드박스가 .git 쓰기나 tmux 소켓을 막았을 수 있습니다. 같은 명령을 샌드박스 밖(권한 상승)으로 "
                 "다시 요청하고, 거절되면 서브에이전트 도구나 루트 순차 구현으로 진행하세요.")
 
@@ -53,8 +62,39 @@ def worker_command(metadata, prompt):
     if metadata["worker"] == "claude":
         return [metadata["cli"], "-p", "--model", metadata["model"], "--effort", metadata["effort"],
                 "--permission-mode", "bypassPermissions", "--output-format", "text", prompt]
-    return [metadata["cli"], "exec", "--yolo", "-C", metadata["project"], "-m", metadata["model"],
+    return [metadata["cli"], "exec", "--yolo", "--json", "-C", metadata["project"], "-m", metadata["model"],
             "-c", 'model_reasoning_effort="' + metadata["effort"] + '"', prompt]
+
+
+def model_choice(worker, tier, model=None, effort=None):
+    selected, reasoning = TIERS[worker][tier]
+    if worker == "codex" and model and model not in {value[0] for value in TIERS[worker].values()}:
+        raise ValueError("대회 허용 모델이 아닙니다: " + model)
+    return {"worker": worker, "tier": tier, "model": model or selected, "effort": effort or reasoning}
+
+
+def summarize_events(path):
+    """완료 턴의 관측 토큰만 합산한다. 캐시 토큰은 input에 이미 포함돼 있다."""
+    usage = dict.fromkeys(TOKEN_FIELDS, 0)
+    turns = 0
+    with path.open(encoding="utf-8", errors="replace") as stream:
+        for line in stream:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict) or event.get("type") != "turn.completed":
+                continue
+            counts = event.get("usage")
+            if not isinstance(counts, dict) or any(type(counts.get(key)) is not int or counts[key] < 0
+                                                   for key in TOKEN_FIELDS):
+                continue
+            if counts["cached_input_tokens"] > counts["input_tokens"]:
+                continue
+            for key in TOKEN_FIELDS:
+                usage[key] += counts[key]
+            turns += 1
+    return {**usage, "total_tokens": usage["input_tokens"] + usage["output_tokens"], "turns": turns} if turns else None
 
 
 def project_paths(project):
@@ -101,9 +141,10 @@ def progress(args):
 def run_status(metadata, active, tmux, tail):
     run_dir = Path(metadata["run_dir"])
     row = {key: metadata[key] for key in ("id", "session", "run_dir", "report")}
-    row["model"] = metadata.get("model")
+    for key in ("model", "tier", "effort", "prompt_bytes"):
+        row[key] = metadata.get(key)
     row["session_present"] = metadata["session"] in active
-    for name in ("progress", "exit"):
+    for name in ("progress", "exit", "usage"):
         path = run_dir / (name + ".json")
         row[name] = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
     row["progress_age_seconds"] = None
@@ -172,6 +213,42 @@ def status(args):
     return 0
 
 
+def usage(args):
+    """실패·재실행까지 모든 실행을 집계한다. tmux나 모델은 호출하지 않는다."""
+    project, runs = project_paths(args.project)
+    totals, errors = {}, []
+    for path in sorted(runs.glob("*/run.json")):
+        try:
+            metadata = json.loads(path.read_text(encoding="utf-8"))
+            if metadata["project"] != str(project) or (args.id and metadata["id"] not in args.id):
+                continue
+            key = metadata["model"] + "/" + metadata["effort"]
+            bucket = totals.setdefault(key, {"runs": 0, "measured_runs": 0, "unknown_runs": 0,
+                                             **dict.fromkeys(TOKEN_FIELDS + ("total_tokens",), 0)})
+            bucket["runs"] += 1
+            bucket["unknown_runs"] += 1
+            token_path = path.parent / "usage.json"
+            counts = json.loads(token_path.read_text(encoding="utf-8")) if token_path.exists() else None
+            if counts is not None:
+                if not isinstance(counts, dict) or any(type(counts.get(field)) is not int or counts[field] < 0
+                                                       for field in TOKEN_FIELDS + ("total_tokens",)):
+                    raise ValueError("유효하지 않은 usage.json")
+                if (counts["total_tokens"] != counts["input_tokens"] + counts["output_tokens"] or
+                        counts["cached_input_tokens"] > counts["input_tokens"]):
+                    raise ValueError("일치하지 않는 토큰 합계")
+                for field in TOKEN_FIELDS + ("total_tokens",):
+                    bucket[field] += counts[field]
+                bucket["measured_runs"] += 1
+                bucket["unknown_runs"] -= 1
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append({"path": str(path), "error": str(exc)})
+    print(json.dumps({"project": str(project), "by_model_effort": totals,
+                      "observed_total_tokens": sum(row["total_tokens"] for row in totals.values()),
+                      "unknown_runs": sum(row["unknown_runs"] for row in totals.values()),
+                      "errors": errors}, ensure_ascii=False, indent=2))
+    return 0
+
+
 def phase(row):
     return (row.get("progress") or {}).get("phase")
 
@@ -219,8 +296,15 @@ def run_worker(run_dir):
     prompt = (run_dir / "prompt.txt").read_text(encoding="utf-8")
     # 대화형 TUI는 처음 보는 폴더의 신뢰 확인이나 질문에서 입력을 기다리며 멈춘다. 비대화형 실행은 끝나면 스스로 종료한다.
     try:
-        result = subprocess.run(worker_command(metadata, prompt),
-                                cwd=metadata["project"], stdin=subprocess.DEVNULL, check=False)
+        if metadata["worker"] == "codex":
+            # 긴 도구 출력은 디스크에 두고, 루트는 progress·report·usage만 읽는다.
+            with (run_dir / "events.jsonl").open("w", encoding="utf-8") as output:
+                result = subprocess.run(worker_command(metadata, prompt), stdout=output,
+                                        cwd=metadata["project"], stdin=subprocess.DEVNULL, check=False)
+            write_json(run_dir / "usage.json", summarize_events(run_dir / "events.jsonl"))
+        else:
+            result = subprocess.run(worker_command(metadata, prompt),
+                                    cwd=metadata["project"], stdin=subprocess.DEVNULL, check=False)
         code, error = result.returncode, ""
     except OSError as exc:
         code, error = 127, str(exc)
@@ -232,6 +316,13 @@ def run_worker(run_dir):
             metadata.get("worker", "codex"), code, "있음" if reported else "없음", HOLD_SECONDS // 60), flush=True)
         if error:
             print("[harness] " + error, flush=True)
+        if metadata["worker"] == "codex":
+            events = run_dir / "events.jsonl"
+            if events.exists():
+                with events.open(encoding="utf-8", errors="replace") as stream:
+                    for line in deque(stream, maxlen=4):
+                        print("[harness] " + line.rstrip()[:500], flush=True)
+            print("[harness] 상세 출력: " + str(events), flush=True)
         try:
             time.sleep(HOLD_SECONDS)
         except KeyboardInterrupt:
@@ -263,13 +354,13 @@ def start(args):
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", args.id):
         raise ValueError("ID는 영문·숫자로 시작하는 64자 이하 영문·숫자·_-만 가능합니다")
     worker = args.worker or default_worker()
+    choice = model_choice(worker, args.tier, args.model, args.effort)
     executables = {name: require(name) for name in ("git", "tmux", worker)}
     project, runs = project_paths(args.project)
     subprocess.run([executables["git"], "-C", str(project), "rev-parse", "--verify", "HEAD"],
                    check=True, capture_output=True)
     materials = read_materials(project, args.brief, args.instruction, worker)
-    model, effort = TIERS[worker][args.tier]
-    choice = {"worker": worker, "cli": executables[worker], "model": args.model or model, "effort": effort}
+    choice["cli"] = executables[worker]
     runs.mkdir(parents=True, exist_ok=True)
     # 동시에 start를 호출해도 확인과 세션 생성을 한 번에 하나씩 수행한다.
     with (runs / "start.lock").open("a") as lock:
@@ -291,11 +382,14 @@ def launch(identity, project, runs, session, tmux, choice, materials):
                                    "progress", "--run-dir", str(run_dir)])
     prompt = (
         "당신은 위임된 슬라이스의 구현 담당이다. 아래 브리프와 지침 전문을 읽고 작업하라.\n"
-        "다른 작업자가 같은 프로젝트에서 병렬 작업 중이다. 브리프의 쓰기 범위만 수정하라.\n"
+        "다른 작업자가 같은 프로젝트에서 작업할 수 있다. 브리프의 쓰기 범위만 수정하라.\n"
         "공유 docs, 계약, 결정 기록, Git 인덱스는 루트 담당이다. 스테이징·커밋·브랜치 전환·되돌리기 금지.\n"
         "추가 위임 없이 직접 수행하라. 계약 변경이 필요하면 BLOCKER를 보고하고 멈춰라.\n"
+        "전달된 자료를 다시 읽거나 전체 SPEC·TASKS·다른 스킬을 열지 마라. 필요한 코드·샘플만 읽어라.\n"
         "사용자 입력을 기다리지 마라. 질문·승인이 필요하면 멈추고 STATUS: BLOCKED 보고의 BLOCKER: 줄에 적어라.\n"
-        "검증 결과, 변경 파일, 핵심 알고리즘·복잡도·경계 사례·근거 위치, 한계를 보고하라.\n"
+        "같은 검증 실패가 최소 수정 뒤 다시 나면 반복 추측 대신 재현·원인을 BLOCKED로 보고하라.\n"
+        "보고는 15줄 안팎: 변경 파일, 검증 명령·종료 코드·핵심 출력, 알고리즘·경계 사례·한계·근거 위치.\n"
+        "긴 로그는 파일에 두고 경로만 적되 실패 근거는 생략하지 마라.\n"
         "작업 시작·구현·검증·차단 시 아래 진행 명령에 --phase와 --message를 붙여 갱신하라.\n"
         "phase는 planning, implementing, verifying, blocked 중 하나, message는 현재 상황 한 줄이다.\n"
         "긴 작업도 가능한 도구 호출 사이에 약 60초마다 갱신하라. 부모가 wait·status로 확인한다.\n"
@@ -309,7 +403,7 @@ def launch(identity, project, runs, session, tmux, choice, materials):
         prompt += "--- 자료: " + str(path) + " ---\n" + contents + "\n\n"
     metadata = {"id": identity, "project": str(project), "session": session,
                 "run_dir": str(run_dir), "report": str(report), **choice,
-                "progress": str(run_dir / "progress.json")}
+                "progress": str(run_dir / "progress.json"), "prompt_bytes": len(prompt.encode("utf-8"))}
     (run_dir / "prompt.txt").write_text(prompt, encoding="utf-8")
     write_json(run_dir / "run.json", metadata)
     write_json(run_dir / "progress.json", {"phase": "starting", "message": "작업자 실행 준비",
@@ -344,9 +438,13 @@ def main():
     launch_parser.add_argument("--instruction", type=Path, action="append", default=[],
                                help="전문으로 전달할 모듈 지침 (반복 가능). 루트 지침은 자동 처리")
     launch_parser.add_argument("--worker", choices=tuple(TIERS), help="작업자 CLI (기본: 설치 경로로 판단)")
-    launch_parser.add_argument("--tier", choices=("implement", "light"), default="implement",
-                               help="implement=중 등급 구현(기본), light=하 등급 검증·단순 수정")
-    launch_parser.add_argument("--model", help="등급 대신 쓸 모델 이름")
+    launch_parser.add_argument("--tier", choices=tuple(TIERS["codex"]), default="implement",
+                               help="implement=제한된 구현(기본), light=단순 수정, reason=복잡한 작업, fallback/legacy=대체")
+    launch_parser.add_argument("--model", help="모델만 재지정 (Codex는 대회 허용 목록, 추론 강도는 tier 유지)")
+    launch_parser.add_argument("--effort", choices=("low", "medium", "high"), help="등급의 추론 강도 재지정")
+    accounting = commands.add_parser("usage", help="Codex 관측 토큰 합산 (실패·재실행 포함, 루트 세션 제외)")
+    accounting.add_argument("--project", type=Path, default=Path.cwd())
+    accounting.add_argument("--id", action="append", help="집계할 슬라이스 (반복 가능, 기본 전체)")
     inspect = commands.add_parser("status", help="부모용: 슬라이스별 최신 실행·진행·터미널 출력 JSON")
     inspect.add_argument("--project", type=Path, default=Path.cwd())
     inspect.add_argument("--id", action="append", help="조회할 슬라이스 (반복 가능, 기본 전체)")
@@ -354,7 +452,7 @@ def main():
     block = commands.add_parser("wait", help="부모용: 보고·실패·차단·전체 종료·시간 초과까지 기다린 뒤 상태 JSON")
     block.add_argument("--project", type=Path, default=Path.cwd())
     block.add_argument("--id", action="append", help="기다릴 슬라이스 (반복 가능, 기본 전체)")
-    block.add_argument("--timeout", type=int, default=90, help="최대 대기 초 (1~3600, 기본 90)")
+    block.add_argument("--timeout", type=int, default=60, help="최대 대기 초 (1~3600, 기본 60)")
     block.add_argument("--interval", type=float, default=3.0, help="내부 확인 간격 초 (기본 3)")
     block.add_argument("--tail", type=int, default=0, help="돌아올 때 함께 볼 터미널 출력 줄 수 (기본 0)")
     update = commands.add_parser("progress", help="작업자용: 현재 단계·진행 상황 게시")
@@ -367,7 +465,7 @@ def main():
     try:
         if args.command == "_worker":
             return run_worker(args.run_dir)
-        return {"start": start, "status": status, "wait": wait, "progress": progress}[args.command](args)
+        return {"start": start, "status": status, "wait": wait, "progress": progress, "usage": usage}[args.command](args)
     except (OSError, ValueError, subprocess.CalledProcessError) as exc:
         print("위임 명령 실패: " + str(exc), file=sys.stderr)
         detail = exc.stderr if isinstance(exc, subprocess.CalledProcessError) and exc.stderr else ""
