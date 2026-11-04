@@ -162,7 +162,8 @@ def install(destination, tool, force):
     print("완료: 설치 {}개, 동일 파일·기존 docs 보존 {}개 → {}".format(len(pending), skipped, destination))
     if tool != "codex" and (destination / "CLAUDE.md").exists() and (destination / ".claude/CLAUDE.md").exists():
         print("확인: CLAUDE.md와 .claude/CLAUDE.md의 규칙이 충돌하지 않는지 확인하세요.")
-    command = "codex → $kickoff" if tool == "codex" else "claude → /kickoff"
+    command = ("codex -m gpt-6.1-sol -c 'model_reasoning_effort=\"high\"' → $kickoff"
+               if tool == "codex" else "claude --model opus --effort high → /kickoff")
     print("다음: 첫 커밋 뒤 " + command + " README.md <마감 시각, 예: 13:00>")
     return 0
 

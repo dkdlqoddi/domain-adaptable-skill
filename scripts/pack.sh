@@ -19,7 +19,7 @@ zip -qz "$STAGE/harness.zip" <<'EOF'
 기본은 Codex(AGENTS.md + .agents/skills/). Claude: --tool claude / 구버전 Claude: --tool claude-commands
 충돌 시 쓰기 전에 중단(zip은 남음). --force는 백업 후 교체. docs/는 항상 보존.
 그다음 Git 설정·첫 커밋 후 루트 시작:
-  codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
+  codex -m gpt-6.1-sol -c 'model_reasoning_effort="high"'
 Codex 입력창: $kickoff README.md <마감 시각>.
 EOF
 mv "$STAGE/harness.zip" "$OUT/harness.zip"

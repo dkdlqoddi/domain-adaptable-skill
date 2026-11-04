@@ -12,22 +12,22 @@ Cofa Probe 환경의 해커톤을 위한 **Codex용 개인 하네스**입니다.
 
 ## 대회 모델과 토큰 사용
 
-허용 모델은 **Sol 6.1·Sol 6.0·Terra 5.6·Luna 6.0**입니다. 작은 수정·검색·테스트 실행은 루트에서 끝내고, 계약과 검증이 명확한 구현만 Luna에 맡깁니다. 복잡한 작업은 처음부터 Sol 6.1로 처리합니다.
+허용 모델은 **Sol 6.1·Sol 6.0·Terra 5.6·Luna 6.0**입니다. 설계는 **Sol 6.1 high**, 일반 구현은 **Sol 6.1 medium**으로 시작합니다. Luna는 정해진 치환·서식 수정·추출에 한정하고, 테스트·검색·집계는 루트가 도구로 직접 처리합니다.
 
 | 역할 / 실행기 tier | Codex 모델 ID | 추론 기본값 | 용도 |
 |---|---|---|---|
-| 루트 | `gpt-6.1-sol` | low | 인터뷰·계약·브리프·통합. 어려운 판단만 medium/high |
-| `implement` (기본) | `gpt-6-luna` | medium | 범위·샘플·검증이 정해진 구현 |
-| `light` | `gpt-6-luna` | low | 기계적 수정·추출. 명령 실행만이면 직접 처리 |
-| `reason` | `gpt-6.1-sol` | medium | 복잡한 구현·실패 진단 |
-| `fallback` | `gpt-6-sol` | medium | 주 모델 사용 불가 또는 검증된 대체 |
-| `legacy` | `gpt-5.6-terra` | medium | 해당 작업에서 검증된 대체 |
+| 루트(설계) | `gpt-6.1-sol` | high | 요구사항·계약·설계·통합 판단 |
+| `implement` (기본) | `gpt-6.1-sol` | medium | 기능·UI·테스트 등 일반 구현 |
+| `light` | `gpt-6-luna` | medium | 정해진 치환·서식 수정·추출. 기능 판단은 맡기지 않음 |
+| `reason` | `gpt-6.1-sol` | high | 구조·알고리즘·복잡한 진단·보안·데이터 무결성 |
+| `fallback` | `gpt-6-sol` | medium | Sol 6.1 사용 불가 또는 품질을 확인한 반복 구현 |
+| `legacy` | `gpt-5.6-terra` | medium | 기존 패턴을 따르는 국소 수정에서 품질을 확인한 경우 |
 
 2026-11-04에 확인한 공식 표준 크레딧 요금에서 Sol 6.0은 Sol 6.1보다 일반 입력·출력이 저렴하지 않고, Terra 5.6의 출력 요금은 더 높습니다. 그래서 버전순 승급을 만들지 않았습니다. **대회 자체 과금은 별도**이며, 원시 토큰 절감과 모델별 비용 절감은 같은 지표가 아닙니다. [공식 요금표](https://learn.chatgpt.com/docs/pricing)
 
 ```bash
 # 과제 프로젝트에서 루트 시작 (전역 설정을 덮어쓰지 않음)
-codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
+codex -m gpt-6.1-sol -c 'model_reasoning_effort="high"'
 # 복잡한 슬라이스만 올리기
 python3 .agents/skills/delegate/scripts/tmux_codex.py start \
   --project "$PWD" --id S1 --brief docs/briefs/S1.md --tier reason
@@ -37,11 +37,11 @@ python3 .agents/skills/delegate/scripts/tmux_codex.py usage --project "$PWD"
 
 루트는 `/model`, 작업자는 `--tier`와 필요 시 `--effort low|medium|high`로 선택합니다. `--model`은 모델만 바꾸며 tier의 추론 강도는 유지합니다. Codex 실행기는 허용 목록 밖 모델을 시작 전에 차단합니다. 기본값 원본은 실행기의 `TIERS`입니다.
 
-토큰은 호출 수·문맥·추론·반복 출력에서 줄입니다. 공통 지침은 5,000바이트 이내로 검사하고, 작업자는 브리프·관련 지침만 받으며 전체 대화·SPEC·TASKS를 다시 읽지 않습니다. 기본 1개, `--parallel`이면 독립 작업 2개를 실행합니다. 같은 검증 실패가 최소 수정 후 반복되면 원인과 diff를 붙여 Sol 6.1로 한 번만 재위임합니다. 전체 회귀는 통합 체크포인트와 마무리에 수행합니다. [모델·문맥·재시도 규칙](harness/.agents/skills/delegate/routing.md)
+토큰은 문맥 중복·긴 출력·불필요한 호출에서 줄입니다. 공통 지침은 5,000바이트 이내로 검사하고, 작업자는 작은 브리프로 시작하되 관련 계약·제약·호출부·테스트는 필요한 만큼 확인합니다. 기본 1개, `--parallel`이면 독립 작업 2개입니다. 새 근거 없이 같은 원인의 실패를 반복하면 원인·시도·diff를 붙여 `reason`으로 한 번만 재위임하고, 이미 high였다면 루트가 문맥과 범위를 다시 확인합니다. DONE 전 P0 수용 조건·사용자 흐름·오류 처리까지 확인하고, 전체 회귀는 통합 체크포인트와 마무리에 수행합니다. [모델·문맥·재시도 규칙](harness/.agents/skills/delegate/routing.md)
 
 `usage`는 Codex 완료 턴의 입력·캐시 입력·출력을 모델/추론별 집계합니다. 캐시 입력은 입력에 이미 포함되며 합계는 입력+출력입니다. 긴 이벤트는 파일에 두고 부모에는 보고와 집계만 전달합니다. `unknown_runs`·`errors`도 확인하세요. 루트·다른 CLI·완료 이벤트가 없는 실패 중 사용량은 이 집계에 포함되지 않습니다. [공식 JSON 이벤트 형식](https://learn.chatgpt.com/docs/non-interactive-mode)
 
-이는 검증 가능한 시작 정책이며 실제 완료당 최소 토큰을 입증한 벤치마크는 아닙니다. Luna의 실패가 잦은 작업 유형은 처음부터 `reason`을 선택하고, 같은 유형의 완료율과 재시도 포함 사용량으로 조정합니다. 추론 기본값을 낮춘 뒤 필요한 작업만 높이는 방식입니다. [모델·추론 선택](https://learn.chatgpt.com/docs/models)
+이 설정은 실제 모델의 결과물 품질이나 완료당 최소 토큰을 입증한 벤치마크는 아닙니다. **품질 기준을 통과한 결과의 재작업 포함 토큰**으로 비교합니다. 기본 구현은 Sol 6.1을 쓰고, 같은 유형에서 결과가 충분하다고 확인한 작업만 경량 모델로 옮깁니다. high는 설계·복잡한 추론에 집중합니다. [모델·추론 선택](https://learn.chatgpt.com/docs/models)
 
 ## 폴더 지도
 
@@ -102,7 +102,7 @@ bash scripts/install.sh /path/to/task
 
 # 과제 폴더에서 시작
 cd /path/to/task
-codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
+codex -m gpt-6.1-sol -c 'model_reasoning_effort="high"'
 ```
 
 기본 설치는 Codex이며 `--tool codex`를 명시해도 같습니다. 과제 폴더에서 첫 커밋을 만든 뒤 Codex 입력창에 `$kickoff README.md 13:00`을 입력합니다.
@@ -129,7 +129,7 @@ git config user.email >/dev/null || git config user.email "me@example.com"
 git config user.name  >/dev/null || git config user.name "이름"
 git add -- README.md AGENTS.md .agents/ docs/    # + 검토한 과제 파일
 git diff --cached --stat && git commit -qm "init: 과제와 Codex 하네스"
-codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
+codex -m gpt-6.1-sol -c 'model_reasoning_effort="high"'
 ```
 
 | 설치 상황 | 동작 |
@@ -155,7 +155,7 @@ codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
 | 다지기·확인 | 인터뷰 종료 뒤 자동 진행 | 빈틈 질문 → 요약 → 확인 4문항(파일 없음). 깊은 복습은 `$interview quiz` |
 | 계약 ~1:20 | `$spec` | P0≤3·비목표·픽스처·슬라이스·검증 명령 확정 → 구현 계획 10줄을 보고 의견 반영 |
 | 뼈대 | `$delegate S0` | 입력부터 출력까지 흐르는 뼈대·검증·커밋 |
-| 구현 ~3:10 | `$delegate S1` → `/new` → 다음 TODO | 마일스톤(S0·P0 첫 슬라이스·대안 있는 알고리즘)은 방식 확인 후 진행. 지정 작업은 Luna로 구현, `--parallel`이면 독립 작업 병렬, 루트에서 슬라이스별 검증·정리·커밋. P0가 끝나면 시연·의견 |
+| 구현 ~3:10 | `$delegate S1` → `/new` → 다음 TODO | 마일스톤(S0·P0 첫 슬라이스·대안 있는 알고리즘)은 방식 확인 후 진행. 일반 작업은 Sol 6.1 medium으로 구현, `--parallel`이면 독립 작업 병렬, 루트에서 슬라이스별 검증·정리·커밋. P0가 끝나면 시연·의견 |
 | 마무리 3:10~4:00 | `$wrapup` | 통합 검증·실행 README·RETRO·전체 정리·16문항 퀴즈 |
 
 커밋 또는 보류 사유가 `docs/`에 남은 뒤 `/new`로 새 대화를 시작하고 파일에서 재개합니다. [OpenAI 공식 명령 문서](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
@@ -167,7 +167,7 @@ codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
 |---|---|
 | 독립 작업 병렬 구현 | `$delegate S1 --parallel`. 선행 의존성이 DONE이고 쓰기 파일·검증 자원이 분리된 2개, 필요할 때 최대 6개. 기본 호출은 1개 |
 | 한 슬라이스만 순차 구현 | `$delegate S1 --serial` |
-| 검증·단순 수정만 위임 | 테스트 명령은 루트가 직접. 위임이 필요한 단순 수정만 `--tier light`(`gpt-6-luna`, low) |
+| 검증·단순 수정만 위임 | 테스트 명령은 루트가 직접. 정해진 치환·추출만 `--tier light`(`gpt-6-luna`, medium) |
 | tmux·작업자 CLI 없음 또는 실행 불가 | 사유를 알리고 내장 서브에이전트에 같은 브리프와 등급 모델로 위임, 그것도 없으면 루트에서 순차 구현 |
 | 샌드박스가 커밋·실행기를 막음 | 권한 상승 승인 요청에 답한다. 거절하면 커밋은 보류, 병렬은 서브에이전트나 순차 구현 |
 | 구현 중 새 요구 | `$interview <답>` → `$spec` → `$delegate <새 ID>`. 기존 DONE은 유지 |
@@ -184,7 +184,7 @@ codex -m gpt-6.1-sol -c 'model_reasoning_effort="low"'
 
 ### 병렬 실행과 학습 문서
 
-[tmux 실행 절차](harness/.agents/skills/delegate/tmux.md)의 실행기가 브리프와 모듈 지침 전문을 초기 프롬프트로 전달합니다. 실행기는 설치된 스킬 폴더로 작업자 CLI를 고르고(Codex: `codex exec --yolo --json -m gpt-6-luna`, Claude: `claude -p --model sonnet`), 작업자가 스스로 읽지 않는 쪽의 루트 지침만 자동으로 더합니다. `--yolo`와 `bypassPermissions`는 승인과 샌드박스를 끄므로 허용된 작업 환경에서 사용합니다. [공식 CLI 옵션](https://learn.chatgpt.com/docs/cli/reference)
+[tmux 실행 절차](harness/.agents/skills/delegate/tmux.md)의 실행기가 브리프와 모듈 지침 전문을 초기 프롬프트로 전달합니다. 실행기는 설치된 스킬 폴더로 작업자 CLI를 고르고(Codex: `codex exec --yolo --json -m gpt-6.1-sol`, Claude: `claude -p --model opus`), 작업자가 스스로 읽지 않는 쪽의 루트 지침만 자동으로 더합니다. `--yolo`와 `bypassPermissions`는 승인과 샌드박스를 끄므로 허용된 작업 환경에서 사용합니다. [공식 CLI 옵션](https://learn.chatgpt.com/docs/cli/reference)
 실행기는 같은 프로젝트의 세션을 최대 6개로 제한합니다. 기본 위임은 1개이며, `--parallel`은 독립 작업 2개, 시간상 이득이 분명하면 6개까지 늘립니다. 작업자는 보고를 마치면 스스로 끝나며, 보고 없이 끝나 원인 확인용으로 남은 세션은 종료 전까지 한도에 포함됩니다. 비대화형 실행이라 처음 보는 폴더의 신뢰 확인 화면에서 멈추지 않습니다.
 부모 에이전트(루트)는 셸 `sleep`으로 주기 조회하지 않고, 결과나 문제가 생길 때까지 기다리는 명령을 씁니다.
 
@@ -221,7 +221,7 @@ python3 .agents/skills/delegate/scripts/tmux_codex.py wait --project "$PWD" --ti
 | 구버전 Claude | `--tool claude-commands` | 위 파일 + 링크를 보정한 `.claude/commands/*.md` | `/kickoff` / `/clear` |
 
 Claude 설치 시 기존 루트 `CLAUDE.md`가 사용자 지침이면 하네스는 `.claude/CLAUDE.md`에 설치합니다. 두 파일 모두 충돌하면 쓰기 전에 중단합니다.
-Claude 설치의 기본 구현은 `sonnet` medium, 단순 수정은 `sonnet` low, 복잡한 작업은 `opus` medium입니다. Codex 작업자는 `--worker codex`로 선택합니다. tmux·CLI가 없으면 Agent 도구(general-purpose)에 같은 브리프·모델·추론을 전달하고, 그것도 없으면 루트에서 직접 처리합니다. Markdown 변환은 Sol 두 모델을 `opus`, Luna와 Terra를 `sonnet`으로 바꾸며 실행기와의 일치 여부를 검사합니다. 이번 대회 정책은 codex 브랜치에 적용했으며 main 원본과의 파일 동등성을 주장하지 않습니다.
+Claude 설치의 기본 구현은 `opus` medium, 기계적 수정은 `sonnet` medium, 설계·복잡한 작업은 `opus` high입니다. Codex 작업자는 `--worker codex`로 선택합니다. tmux·CLI가 없으면 Agent 도구(general-purpose)에 같은 브리프·모델·추론을 전달하고, 그것도 없으면 루트에서 직접 처리합니다. Markdown 변환은 Sol 두 모델을 `opus`, Luna와 Terra를 `sonnet`으로 바꾸며 실행기와의 일치 여부를 검사합니다. 이번 대회 정책은 codex 브랜치에 적용했으며 main 원본과의 파일 동등성을 주장하지 않습니다.
 Claude 원본과 이전 변경 이력은 `main` 브랜치에서 확인할 수 있습니다.
 
 ## 미리 연습하기
@@ -246,7 +246,7 @@ Claude 원본과 이전 변경 이력은 `main` 브랜치에서 확인할 수 �
 | 저장소와 설치 | 이 저장소는 배포 원본이다. 과제 폴더에 설치하며, 충돌은 쓰기 전에 중단한다. `--force`는 백업 후 지침·스킬을 교체하고 기존 docs는 보존한다 | [설치기](scripts/install.py) |
 | 문제 정의 | kickoff에서 모르는 것을 찾고, interview에서 관찰·불편·데이터·성공·가설 순서로 확인한다. 사실·가정·미확인을 구분한다 | [인터뷰](harness/.agents/skills/interview/SKILL.md) |
 | 계약과 작업 분할 | P0는 최대 3개, 모듈은 기본 1개다. 비목표·구체적 입출력·실패 예·픽스처·검증 명령을 먼저 정하고 S0부터 만든다 | [계약](harness/.agents/skills/spec/SKILL.md) |
-| 구현과 통합 | 기본 1개, `--parallel`이면 독립 2개(최대 6개). 파일·포트·DB·생성물을 분리한다. 부모는 `wait`로 기다리고 모든 보고 회수·작업자 정지 뒤 검증한다. 루트는 Sol 6.1, 명확한 구현은 Luna, 복잡한 작업은 `reason`을 선택한다. 구현 계획과 마일스톤 방식은 사람이 확인한다 | [위임](harness/.agents/skills/delegate/SKILL.md) |
+| 구현과 통합 | 기본 1개, `--parallel`이면 독립 2개(최대 6개). 파일·포트·DB·생성물을 분리한다. 부모는 `wait`로 기다리고 모든 보고 회수·작업자 정지 뒤 검증한다. 설계는 Sol 6.1 high, 일반 구현은 같은 모델 medium, 기계적 수정만 Luna medium을 선택한다. 구현 계획과 마일스톤 방식은 사람이 확인한다 | [위임](harness/.agents/skills/delegate/SKILL.md) |
 | 기록과 변경 보존 | 상태·지식·결정은 docs에 남긴다. 기존 변경을 보존하고 검토한 파일만 커밋한다. 기존 staged 변경이 있으면 자동 커밋을 보류한다 | [Git 절차](harness/.agents/skills/delegate/git-workflow.md) |
 | 마무리와 이해 | 통합 검증·실행 README·RETRO를 마친 뒤 전체 정리와 16문항으로 이해를 점검한다. 약점은 근거 코드·테스트로 복습하고 퀴즈가 제출을 막지 않게 한다 | [마무리](harness/.agents/skills/wrapup/SKILL.md) |
 | 증거의 범위 | 자동 검사는 설치·실행기의 동작을 확인한다. 실제 모델의 전체 수행은 별도 리허설로 확인한다. 과거 Claude 기록·비용과 평가 방식의 2차 정보는 현재 실행의 증거가 아니다 | [검사](scripts/check.sh), [평가 정보](docs/01-cofa-probe.md) |

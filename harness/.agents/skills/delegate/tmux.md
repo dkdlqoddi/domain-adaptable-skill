@@ -2,7 +2,7 @@
 
 독립 슬라이스는 이 절차로 동시에 실행한다. Python 3.8+ 표준 라이브러리와 `git`, `tmux`, 로그인된 작업자 CLI가 필요하다.
 실행기는 자기가 설치된 스킬 폴더로 작업자 CLI를 고른다: Codex 설치면 비대화형 `codex exec --yolo`, Claude 설치면 `claude -p --permission-mode bypassPermissions`. 둘 다 승인·샌드박스를 끄므로 사용자가 허용한 작업 환경에서만 실행한다. 루트의 도구·보안 설정을 변경하지 않는다.
-모델 선택은 [routing.md](routing.md). 기본 `--tier implement`는 `gpt-6-luna` medium, `light`는 같은 모델 low, `reason`은 `gpt-6.1-sol` medium이다. `fallback`·`legacy`는 검증된 대체용. `--effort`로 추론을 조절하며 `--model`만 바꾸면 tier의 effort는 유지된다. `--worker codex|claude`는 작업자 CLI를 고른다. Codex는 허용된 네 모델만 실행한다.
+모델 선택은 [routing.md](routing.md). 기본 `--tier implement`는 `gpt-6.1-sol` medium, `reason`은 같은 모델 high, `light`는 기계적 수정·추출용 `gpt-6-luna` medium이다. `fallback`·`legacy`는 검증된 대체용. `--effort`로 추론을 조절하며 `--model`만 바꾸면 tier의 effort는 유지된다. `--worker codex|claude`는 작업자 CLI를 고른다. Codex는 허용된 네 모델만 실행한다.
 
 ## 분할과 시작
 1. 의존성이 모두 DONE인 TODO를 고른다. S0는 먼저 끝낸다. 쓰기 파일, 잠금 파일, 생성물, 테스트 DB·포트까지 겹치지 않아야 한다. 겹치면 순차 실행한다.

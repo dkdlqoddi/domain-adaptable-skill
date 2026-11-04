@@ -45,10 +45,10 @@ class WorkerTest(unittest.TestCase):
             with mock.patch.object(runner.subprocess, "run", side_effect=execute) as call, \
                     mock.patch.object(runner.time, "sleep") as hold, mock.patch("sys.stdout"):
                 self.assertEqual(runner.run_worker(path), returncode)
-            expected = (["/fake/claude", "-p", "--model", "sonnet", "--effort", "low",
+            expected = (["/fake/claude", "-p", "--model", "sonnet", "--effort", "medium",
                          "--permission-mode", "bypassPermissions", "--output-format", "text", prompt]
                         if worker == "claude" else
-                        ["/fake/codex", "exec", "--yolo", "--json", "-C", directory, "-m", "gpt-6-luna",
+                        ["/fake/codex", "exec", "--yolo", "--json", "-C", directory, "-m", "gpt-6.1-sol",
                          "-c", 'model_reasoning_effort="medium"', prompt])
             self.assertEqual(call.call_args[0][0], expected)
             self.assertEqual(call.call_args[1]["cwd"], directory)
@@ -86,8 +86,8 @@ class WorkerTest(unittest.TestCase):
 
     def test_competition_models_and_effort_override(self):
         runner = load_runner()
-        expected = {"implement": ("gpt-6-luna", "medium"), "light": ("gpt-6-luna", "low"),
-                    "reason": ("gpt-6.1-sol", "medium"), "fallback": ("gpt-6-sol", "medium"),
+        expected = {"implement": ("gpt-6.1-sol", "medium"), "light": ("gpt-6-luna", "medium"),
+                    "reason": ("gpt-6.1-sol", "high"), "fallback": ("gpt-6-sol", "medium"),
                     "legacy": ("gpt-5.6-terra", "medium")}
         for tier, (model, effort) in expected.items():
             with self.subTest(tier=tier):
@@ -247,13 +247,13 @@ if "--json" in sys.argv:
         first = self.launch("S1", payload, "--worker", "codex")
         second = self.launch("S2", "독립 작업\n", "--worker", "codex")
         self.assertNotEqual(first["session"], second["session"])
-        self.assertEqual((first["worker"], first["model"], first["effort"]), ("codex", "gpt-6-luna", "medium"))
+        self.assertEqual((first["worker"], first["model"], first["effort"]), ("codex", "gpt-6.1-sol", "medium"))
         for run, body in ((first, payload), (second, "독립 작업\n")):
             report = Path(run["report"])
             self.wait_file(report)
             captured = json.loads((report.parent / "argv.json").read_text())
             self.assertEqual(captured["cwd"], str(self.project))
-            self.assertEqual(captured["args"][:-1], ["exec", "--yolo", "--json", "-C", str(self.project), "-m", "gpt-6-luna",
+            self.assertEqual(captured["args"][:-1], ["exec", "--yolo", "--json", "-C", str(self.project), "-m", "gpt-6.1-sol",
                                                      "-c", 'model_reasoning_effort="medium"'])
             self.assertIn(body, captured["args"][-1])
             self.assertIn(self.instructions, captured["args"][-1])
@@ -433,14 +433,14 @@ if "--json" in sys.argv:
                          (expected_worker, runner.TIERS[expected_worker]["implement"][0]))
         self.assertTrue(Path(default["cli"]).name == expected_worker)
         light = self.launch("S8", "작업", "--worker", "claude", "--tier", "light")
-        self.assertEqual((light["worker"], light["model"], light["effort"]), ("claude", "sonnet", "low"))
+        self.assertEqual((light["worker"], light["model"], light["effort"]), ("claude", "sonnet", "medium"))
         custom = self.launch("S9", "작업", "--worker", "codex", "--tier", "reason", "--model", "gpt-6-luna", "--effort", "high")
         self.assertEqual((custom["model"], custom["effort"]), ("gpt-6-luna", "high"))
         for run in (light, custom):
             self.wait_file(Path(run["report"]))
         captured = json.loads((Path(light["report"]).parent / "argv.json").read_text())
         self.assertEqual(captured["cwd"], str(self.project))
-        self.assertEqual(captured["args"][:-1], ["-p", "--model", "sonnet", "--effort", "low",
+        self.assertEqual(captured["args"][:-1], ["-p", "--model", "sonnet", "--effort", "medium",
                                                  "--permission-mode", "bypassPermissions", "--output-format", "text"])
         self.assertEqual(captured["args"][-1], (Path(light["run_dir"]) / "prompt.txt").read_text())
         captured = json.loads((Path(custom["report"]).parent / "argv.json").read_text())

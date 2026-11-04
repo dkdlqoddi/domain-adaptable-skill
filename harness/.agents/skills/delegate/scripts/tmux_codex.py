@@ -2,7 +2,7 @@
 """tmux에서 비대화형 작업자(codex exec 또는 claude -p)를 최대 6개 실행하고 부모에게 진행 상황을 제공한다.
 
 작업자 CLI는 이 파일이 설치된 경로로 고른다(.agents/skills → codex, .claude/skills → claude).
-기본 implement는 Luna의 제한된 구현, reason은 Sol 6.1의 복잡한 구현·실패 진단이다.
+기본 implement는 Sol 6.1 medium, reason은 같은 모델 high, light는 Luna medium이다.
 Codex 완료 턴의 실제 토큰은 usage로 집계한다. 모델 호출 없이 start 전에 등급을 고른다.
 """
 import argparse
@@ -28,11 +28,11 @@ HOLD_SECONDS = 600  # 보고 없이 끝난 작업자 화면을 부모가 읽을 
 ROOT_RULES = {"codex": ("AGENTS.md",), "claude": ("CLAUDE.md", ".claude/CLAUDE.md")}
 # 등급별 (모델, 추론 강도). Codex는 대회 허용 모델 네 개만 사용한다.
 TIERS = {
-    "codex": {"implement": ("gpt-6-luna", "medium"), "light": ("gpt-6-luna", "low"),
-              "reason": ("gpt-6.1-sol", "medium"), "fallback": ("gpt-6-sol", "medium"),
+    "codex": {"implement": ("gpt-6.1-sol", "medium"), "light": ("gpt-6-luna", "medium"),
+              "reason": ("gpt-6.1-sol", "high"), "fallback": ("gpt-6-sol", "medium"),
               "legacy": ("gpt-5.6-terra", "medium")},
-    "claude": {"implement": ("sonnet", "medium"), "light": ("sonnet", "low"),
-               "reason": ("opus", "medium"), "fallback": ("opus", "medium"),
+    "claude": {"implement": ("opus", "medium"), "light": ("sonnet", "medium"),
+               "reason": ("opus", "high"), "fallback": ("opus", "medium"),
                "legacy": ("sonnet", "medium")},
 }
 TOKEN_FIELDS = ("input_tokens", "cached_input_tokens", "output_tokens")
@@ -385,11 +385,11 @@ def launch(identity, project, runs, session, tmux, choice, materials):
         "다른 작업자가 같은 프로젝트에서 작업할 수 있다. 브리프의 쓰기 범위만 수정하라.\n"
         "공유 docs, 계약, 결정 기록, Git 인덱스는 루트 담당이다. 스테이징·커밋·브랜치 전환·되돌리기 금지.\n"
         "추가 위임 없이 직접 수행하라. 계약 변경이 필요하면 BLOCKER를 보고하고 멈춰라.\n"
-        "전달된 자료를 다시 읽거나 전체 SPEC·TASKS·다른 스킬을 열지 마라. 필요한 코드·샘플만 읽어라.\n"
+        "전달 자료의 중복 읽기는 피하되, 관련 계약·제약·호출부·테스트는 필요한 만큼 확인하라.\n"
         "사용자 입력을 기다리지 마라. 질문·승인이 필요하면 멈추고 STATUS: BLOCKED 보고의 BLOCKER: 줄에 적어라.\n"
-        "같은 검증 실패가 최소 수정 뒤 다시 나면 반복 추측 대신 재현·원인을 BLOCKED로 보고하라.\n"
+        "새 근거 없이 같은 원인의 실패를 반복하면 재현·시도·남은 원인을 BLOCKED로 보고하라.\n"
         "보고는 15줄 안팎: 변경 파일, 검증 명령·종료 코드·핵심 출력, 알고리즘·경계 사례·한계·근거 위치.\n"
-        "긴 로그는 파일에 두고 경로만 적되 실패 근거는 생략하지 마라.\n"
+        "긴 로그는 파일에 두고 경로를 적어라. 실패·미검증 요구·데이터 손실 위험은 길이 때문에 생략하지 마라.\n"
         "작업 시작·구현·검증·차단 시 아래 진행 명령에 --phase와 --message를 붙여 갱신하라.\n"
         "phase는 planning, implementing, verifying, blocked 중 하나, message는 현재 상황 한 줄이다.\n"
         "긴 작업도 가능한 도구 호출 사이에 약 60초마다 갱신하라. 부모가 wait·status로 확인한다.\n"
@@ -439,7 +439,7 @@ def main():
                                help="전문으로 전달할 모듈 지침 (반복 가능). 루트 지침은 자동 처리")
     launch_parser.add_argument("--worker", choices=tuple(TIERS), help="작업자 CLI (기본: 설치 경로로 판단)")
     launch_parser.add_argument("--tier", choices=tuple(TIERS["codex"]), default="implement",
-                               help="implement=제한된 구현(기본), light=단순 수정, reason=복잡한 작업, fallback/legacy=대체")
+                               help="implement=일반 구현(기본), light=기계적 수정·추출, reason=복잡한 작업, fallback/legacy=대체")
     launch_parser.add_argument("--model", help="모델만 재지정 (Codex는 대회 허용 목록, 추론 강도는 tier 유지)")
     launch_parser.add_argument("--effort", choices=("low", "medium", "high"), help="등급의 추론 강도 재지정")
     accounting = commands.add_parser("usage", help="Codex 관측 토큰 합산 (실패·재실행 포함, 루트 세션 제외)")
